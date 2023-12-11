@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 
 namespace Cherish
@@ -58,10 +54,10 @@ namespace Cherish
         }
         public static BitmapImage GenerateBmp(System.Drawing.Bitmap b)
         {
-            using (var ms = new System.IO.MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 b.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-                ms.Seek(0, System.IO.SeekOrigin.Begin);
+                ms.Seek(0, SeekOrigin.Begin);
                 var res = new BitmapImage();
                 res.BeginInit();
                 res.CacheOption = BitmapCacheOption.OnLoad;
@@ -70,13 +66,13 @@ namespace Cherish
                 return res;
             }
         }
-        public static System.Windows.Media.Imaging.BitmapSource ConvertImage(System.Drawing.Image i)
+        public static BitmapSource ConvertImage(System.Drawing.Image i)
         {
             using (var ms = new System.IO.MemoryStream())
             {
                 i.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
                 ms.Seek(0, System.IO.SeekOrigin.Begin);
-                var res = (System.Windows.Media.Imaging.BitmapSource)System.Windows.Media.Imaging.BitmapFrame.Create(ms, System.Windows.Media.Imaging.BitmapCreateOptions.None, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+                var res = (BitmapSource)BitmapFrame.Create(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 return res;
             }
         }
