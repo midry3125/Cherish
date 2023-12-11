@@ -29,17 +29,18 @@ namespace Cherish
         private WaveOutEvent device;
         private AudioPlayer audioPlayer;
         private ImageViewer imageViewer;
+        public string filename;
         private int index;
+        private int maxIndex;
         private bool nowLoading = false;
         public Window1(MainWindow w, int idx)
         {
+            InitializeComponent();
             window = w;
             index = idx;
-            InitializeComponent();
             KeyDown += (sender, e) =>
             {
-                var maxIndex = window.availableContents.Count - 1;
-                int idx;
+                maxIndex = window.availableContents.Count - 1;
                 switch (e.Key)
                 {
                     case Key.Space:
@@ -50,32 +51,44 @@ namespace Cherish
                         }
                         break;
                     case Key.Left:
-                        if (nowLoading) return;
-                        System.Diagnostics.Debug.WriteLine(nowLoading);
-                        idx = index <= 0 ? maxIndex : index - 1;
-                        window.availableContents[idx].DoFocus();
+                        Back();
                         break;
                     case Key.Right:
-                        if (nowLoading) return;
-                        System.Diagnostics.Debug.WriteLine(nowLoading);
-                        idx = maxIndex <= index ? 0 : index + 1;
-                        window.availableContents[idx].DoFocus();
-                        System.Diagnostics.Debug.WriteLine($"{idx} {maxIndex}");
+                        Next();
                         break;
                 }
             };
+        }
+        public void Init()
+        {
+            if (audioPlayer is not null) audioPlayer.Finish();
+            else if (imageViewer is not null) imageViewer.image.Source = null;
+        }
+        public void Next()
+        {
+            maxIndex = window.availableContents.Count - 1;
+            if (nowLoading) return;
+            var idx = maxIndex <= index ? 0 : index + 1;
+            window.availableContents[idx].DoFocus();
+        }
+        public void Back()
+        {
+            maxIndex = window.availableContents.Count - 1;
+            if (nowLoading) return;
+            var idx = index <= 0 ? maxIndex : index - 1;
+            window.availableContents[idx].DoFocus();
         }
         public void OpenFile(string path, int idx)
         {
             if (nowLoading) return;
             nowLoading = true;
             grid.Children.Clear();
-            if (audioPlayer is not null) audioPlayer.fin = true;
-            else if (imageViewer is not null) imageViewer.image.Source = null;
+            Init();
             var info = new ContentInfo(path);
             audioPlayer = null;
             imageViewer = null;
-            Title = $"Cherish  {System.IO.Path.GetFileName(path)}";
+            filename = System.IO.Path.GetFileName(path);
+            Title = $"Cherish  {filename}";
             Dispatcher.BeginInvoke(() =>
             {
                 try

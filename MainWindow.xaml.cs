@@ -5,22 +5,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.Xml.Linq;
 
 
 namespace Cherish
@@ -142,9 +133,21 @@ namespace Cherish
                         }
                         finally
                         {
-                            manager.Cd();
-                            if (!CheckDropAble(e))
-                            {
+                            if (CheckDropAble(e)) manager.Cd();
+                            else {
+                                if (subWindow.filename == System.IO.Path.GetFileName(f))
+                                {
+                                    if (availableContents.Count == 1)
+                                    {
+                                        subWindow.Init();
+                                        subWindow.Close();
+                                    }
+                                    else
+                                    {
+                                        subWindow.Next();
+                                    }
+                                }
+                                manager.Cd();
                                 manager.Delete(System.IO.Path.GetFileName(f));
                             }
                             SetLayout();
@@ -203,11 +206,6 @@ namespace Cherish
                     }
                 }
                 var contextMenu = new ContextMenu();
-                var menuItem1 = new MenuItem();
-                menuItem1.Header = "カテゴリを作成";
-                menuItem1.Name = NEWCATEGORY;
-                menuItem1.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem1);
                 var menuItem2 = new MenuItem();
                 menuItem2.Header = "名前を変更";
                 menuItem2.Name = RENAME;
@@ -218,6 +216,12 @@ namespace Cherish
                 menuItem3.Name = DELETECATEGORY;
                 menuItem3.Click += CategoryMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
+                contextMenu.Items.Add(new Separator());
+                var menuItem1 = new MenuItem();
+                menuItem1.Header = "カテゴリを作成";
+                menuItem1.Name = NEWCATEGORY;
+                menuItem1.Click += CategoryMenuItemClicked;
+                contextMenu.Items.Add(menuItem1);
                 panel.ContextMenu = contextMenu;
                 panel.ContextMenuOpening += ContentMenuItemOpenning;
                 panel.ContextMenuClosing+= ContentMenuItemClosing;
@@ -261,11 +265,6 @@ namespace Cherish
                     }
                 }
                 var contextMenu = new ContextMenu();
-                var menuItem1 = new MenuItem();
-                menuItem1.Header = "カテゴリを作成";
-                menuItem1.Name = NEWCATEGORY;
-                menuItem1.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem1);
                 var menuItem2 = new MenuItem();
                 menuItem2.Header = "名前を変更";
                 menuItem2.Name = RENAME;
@@ -276,6 +275,12 @@ namespace Cherish
                 menuItem3.Name = DELETEFILE;
                 menuItem3.Click += FileMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
+                contextMenu.Items.Add(new Separator());
+                var menuItem1 = new MenuItem();
+                menuItem1.Header = "カテゴリを作成";
+                menuItem1.Name = NEWCATEGORY;
+                menuItem1.Click += FileMenuItemClicked;
+                contextMenu.Items.Add(menuItem1);
                 panel.ContextMenu = contextMenu;
                 panel.ContextMenuOpening += ContentMenuItemOpenning;
                 panel.ContextMenuClosing += ContentMenuItemClosing;

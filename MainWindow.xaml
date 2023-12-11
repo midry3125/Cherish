@@ -202,7 +202,7 @@
                 </Grid>
             </StackPanel>
             <ScrollViewer Style="{StaticResource CustomScrollViewerStyle}" Height="450" VerticalScrollBarVisibility="Auto" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop" DragOver="OnDragOver">
-                <Grid x:Name="ContentView" Background="#FF1B1B1B" AllowDrop="True">
+                <Grid x:Name="ContentView" Background="#FF1B1B1B" AllowDrop="True" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
                         <ColumnDefinition Width="1*"/>

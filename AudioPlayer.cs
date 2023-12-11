@@ -20,7 +20,6 @@ namespace Cherish
         private string path;
         private string filename;
         public bool isBarDrawn = false;
-        public bool fin = false;
         private bool isStoppedByUser = false;
         private bool isSliderChangeAble = true;
         private int beforePos = 0;
@@ -100,6 +99,7 @@ namespace Cherish
                     yet_play_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, yet_play));
                     rstream.Position = 0;
                     played_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, played));
+                    rstream.Close();
                     played.Width = 0;
                     stream.Position = 0;
                     device.Init(stream);
@@ -143,7 +143,7 @@ namespace Cherish
         {
             device.Stop();
             device.Dispose();
-            fin = false;
+            if (stream is not null) stream.Close();
             timer.Stop();
         }
         public void Pause()
@@ -164,7 +164,7 @@ namespace Cherish
 
         private void Update(object sender, EventArgs e)
         {
-            if (fin | !System.Windows.Application.Current.Windows.OfType<Window1>().Any()) Finish();
+            if (!System.Windows.Application.Current.Windows.OfType<Window1>().Any()) Finish();
             else if (device.PlaybackState == PlaybackState.Playing)
             {
                 var p = (double)stream.Position / stream.Length;

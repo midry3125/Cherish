@@ -28,7 +28,6 @@ namespace Cherish
         {
             root = Path.Combine(program_dir, "Files");
             current = root;
-            Console.WriteLine(program_dir);
             if (Directory.Exists(program_dir))
             {
                 UpdateInfo();

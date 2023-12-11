@@ -27,6 +27,7 @@ namespace Cherish
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.UriSource = new Uri(path);
+                bmp.CacheOption= BitmapCacheOption.OnLoad;
                 bmp.EndInit();
                 var widthP = (double)bmp.Width / image.Width;
                 var heightP = (double)bmp.Height / image.Height;
