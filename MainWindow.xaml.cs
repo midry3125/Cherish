@@ -53,7 +53,7 @@ namespace Cherish
             menuItem1.Click += MenuItemClicked;
             contextMenu.Items.Add(menuItem1);
             ContextMenu = contextMenu;
-            manager = new Manager();
+            manager = new();
             SetLayout();
         }
         public void SetLayout()

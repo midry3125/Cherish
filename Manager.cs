@@ -16,7 +16,7 @@ namespace Cherish
     {
         private string[] AudioExts = new string[4] { ".mp3", ".wav", ".aiff", ".aif" };
         private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
-        public string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LibraryDir");
+        public string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Cherish");
         public string current;
         public string root;
         public List<string> files = new();
@@ -28,16 +28,13 @@ namespace Cherish
         {
             root = Path.Combine(program_dir, "Files");
             current = root;
-            if (Directory.Exists(program_dir))
-            {
-                UpdateInfo();
-            }
-            else 
+            if (!Directory.Exists(program_dir))
             {
                 Directory.CreateDirectory(program_dir);
                 File.SetAttributes(program_dir, FileAttributes.Normal);
                 Directory.CreateDirectory(Path.Combine(program_dir, "Files"));
             }
+            UpdateInfo();
         }
 
         private string GetUnusedName(string name)
