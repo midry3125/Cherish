@@ -25,6 +25,7 @@ namespace Cherish
         private const string DELETECATEGORY = "DeleteCategory";
         private const string DELETEFILE = "DeleteFile";
         private const string RENAME = "Rename";
+        private const string OPENBYEXPLORER = "OpenByExplorer";
         public BitmapImage category_icon;
         public BitmapImage audio_icon;
         public BitmapImage image_icon;
@@ -183,6 +184,9 @@ namespace Cherish
                                 subWindow.ShowDialog();
                                 SetLayout();
                                 break;
+                            case OPENBYEXPLORER:
+                                Process.Start("explorer.exe", manager.GetPath(fname));
+                                break;
                             case RENAME:
                                 panel.ChangeAbleName();
                                 break;
@@ -217,6 +221,12 @@ namespace Cherish
                 menuItem3.Click += CategoryMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
                 contextMenu.Items.Add(new Separator());
+                var menuItem4 = new MenuItem();
+                menuItem4.Header = "エクスプローラーで開く";
+                menuItem4.Name = OPENBYEXPLORER;
+                menuItem4.Click += CategoryMenuItemClicked;
+                contextMenu.Items.Add(menuItem4);
+                contextMenu.Items.Add(new Separator());
                 var menuItem1 = new MenuItem();
                 menuItem1.Header = "カテゴリを作成";
                 menuItem1.Name = NEWCATEGORY;
@@ -240,6 +250,9 @@ namespace Cherish
                                 var subWindow = new Window2(manager);
                                 subWindow.ShowDialog();
                                 SetLayout();
+                                break;
+                            case OPENBYEXPLORER:
+                                Process.Start("explorer.exe", manager.current);
                                 break;
                             case RENAME:
                                 panel.ChangeAbleName();
@@ -275,6 +288,12 @@ namespace Cherish
                 menuItem3.Name = DELETEFILE;
                 menuItem3.Click += FileMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
+                contextMenu.Items.Add(new Separator());
+                var menuItem4 = new MenuItem();
+                menuItem4.Header = "エクスプローラーで開く";
+                menuItem4.Name = OPENBYEXPLORER;
+                menuItem4.Click += FileMenuItemClicked;
+                contextMenu.Items.Add(menuItem4);
                 contextMenu.Items.Add(new Separator());
                 var menuItem1 = new MenuItem();
                 menuItem1.Header = "カテゴリを作成";

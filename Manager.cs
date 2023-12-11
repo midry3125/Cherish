@@ -84,7 +84,10 @@ namespace Cherish
         {
             if (name == "")
             {
-                current = Path.GetDirectoryName(current);
+                if (current != root)
+                {
+                    current = Path.GetDirectoryName(current);
+                }
             }
             else
             {
