@@ -196,15 +196,7 @@
     </Window.Resources>
     <Grid Background="#FF1B1B1B" Margin="0,0,0,-38">
         <StackPanel>
-            <Menu Background="#FF2A2A2D" Foreground="#FFDCDDDF">
-                <MenuItem Header="ファイル(_F)" Foreground="#FFDCDDDF">
-                    <MenuItem Header="追加" Click="AddFromDialog" Foreground="#FFDCDDDF" Background="#FF2A2A2D" BorderBrush="#FF2A2A2D"/>
-                </MenuItem>
-                <MenuItem Header="操作(_T)" Foreground="#FFDCDDDF">
-                    <MenuItem Header="カテゴリの追加" Click="OnCreateNewCategory" Foreground="#FFDCDDDF" Background="#FF2A2A2D"/>
-                </MenuItem>
-            </Menu>
-                    <StackPanel Height="60">
+            <StackPanel Height="60">
                 <Grid Height="60">
                     <Button Style="{DynamicResource ButtonStyle1}" x:Name="BackButton" Content="＜" HorizontalAlignment="Left" Height="60" VerticalAlignment="Center" Width="90" Background="#FF202126" BorderBrush="#FF1B1B1B" Click="OnBackButtonClicked" Foreground="#FF4E5478" FontSize="50"/>
                 </Grid>

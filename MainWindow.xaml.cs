@@ -12,7 +12,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Microsoft.Win32;
 
 
 namespace Cherish
@@ -238,7 +237,9 @@ namespace Cherish
                         switch (m.Name.ToString())
                         {
                             case NEWCATEGORY:
-                                CreateNewCategory();
+                                var subWindow = new Window2(manager);
+                                subWindow.ShowDialog();
+                                SetLayout();
                                 break;
                             case RENAME:
                                 panel.ChangeAbleName();
@@ -249,6 +250,7 @@ namespace Cherish
                                 {
                                     manager.Delete(fname);
                                     SetLayout();
+                                    System.Diagnostics.Debug.WriteLine(string.Join(" ", manager.audioFiles));
                                 }
                                 break;
                         }
@@ -297,29 +299,6 @@ namespace Cherish
                 availableContents.Add(panel);
                 panel.index = availableContents.Count - 1;
             }
-        }
-        private void AddFromDialog(object sender, RoutedEventArgs e)
-        {
-            var dialog = new OpenFileDialog();
-            dialog.Multiselect = true;
-            if (dialog.ShowDialog() == true)
-            {
-                foreach (string p in dialog.FileNames)
-                {
-                    manager.AddFile(p);
-                }
-                SetLayout();
-            }
-        }
-        private void CreateNewCategory()
-        {
-            var subWindow = new Window2(manager);
-            subWindow.ShowDialog();
-            SetLayout();
-        }
-        private void OnCreateNewCategory(object sender, RoutedEventArgs e)
-        {
-            CreateNewCategory();
         }
 
         public void OnDragEnter(object sender, DragEventArgs e)
