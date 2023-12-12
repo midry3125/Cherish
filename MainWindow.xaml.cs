@@ -234,16 +234,19 @@ namespace Cherish
                         {
                             if (CheckDropAble(e)) manager.Cd();
                             else {
-                                if (subWindow.filename == System.IO.Path.GetFileName(f))
+                                if (subWindow is not null)
                                 {
-                                    if (availableContents.Count == 1)
+                                    if (subWindow.filename == System.IO.Path.GetFileName(f))
                                     {
-                                        subWindow.Init();
-                                        subWindow.Close();
-                                    }
-                                    else
-                                    {
-                                        subWindow.Next();
+                                        if (availableContents.Count == 1)
+                                        {
+                                            subWindow.Init();
+                                            subWindow.Close();
+                                        }
+                                        else
+                                        {
+                                            subWindow.Next();
+                                        }
                                     }
                                 }
                                 manager.Cd();
