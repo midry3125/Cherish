@@ -34,6 +34,7 @@ namespace Cherish
         public Manager manager;
         private int content_counter = 0;
         private int row = 0;
+        private ProgressDialog progress;
         public Content NowFocusing;
         public Window1 subWindow;
         public MainWindow()
@@ -95,6 +96,103 @@ namespace Cherish
                     break;
             }
         }
+        private void Register(string[] targets)
+        {
+            var fileNum = 0;
+            var paths = new Dictionary<string, string>();
+            var dirs = new Dictionary<string, string>();
+            void SearchFiles(string dir, string p)
+            {
+                var dirname = Path.GetFileName(dir);
+                foreach (string f in Directory.GetFiles(p))
+                {
+                    paths.Add(f, Path.Combine(dirname, Path.GetRelativePath(dir, f)));
+                    fileNum += 1;
+                    progress.Label.Content = $"ファイルパスを取得中...  {fileNum}";
+                    progress.Refresh();
+                }
+                foreach (string d in Directory.GetDirectories(p)){
+                    dirs.Add(d, Path.Combine(dirname, Path.GetRelativePath(dir, d)));
+                    SearchFiles(dir, d);
+                }
+            }
+            progress = new();
+            Dispatcher.BeginInvoke(() =>
+            {
+                progress.Progress.IsIndeterminate = true;
+                progress.Refresh();
+                foreach (string t in targets)
+                {
+                    if (Directory.Exists(t))
+                    {
+                        dirs.Add(t, Path.GetFileName(t));
+                        SearchFiles(t, t);
+                    }
+                    else
+                    {
+                        paths.Add(t, Path.GetFileName(t));
+                    }
+                }
+                progress.Progress.IsIndeterminate = false;
+                progress.Progress.Maximum = paths.Count;
+                progress.Progress.Minimum = 0;
+                progress.Progress.Value = 0;
+                progress.Refresh();
+                var skip = false;
+                foreach (string d in dirs.Values)
+                {
+                    manager.CreateCategory(d);
+                }
+                var current = manager.current;
+                var value = 0;
+                foreach (KeyValuePair<string, string> item in paths)
+                {
+                    manager.Cd(Path.GetDirectoryName(item.Value));
+                    while (true)
+                    {
+                        try
+                        {
+                            manager.AddFile(item.Key);
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            if (skip) break;
+                            var dialog = new UsingOtherProcessDialog();
+                            dialog.OpenDialog(Path.GetFileName(item.Key));
+                            switch (dialog.result)
+                            {
+                                case UsingOtherProcessDialog.SKIP:
+                                    skip = dialog.allSkip;
+                                    break;
+                                case UsingOtherProcessDialog.STOP:
+                                    return;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox.Show($"エラーが発生しました\n({e.Message})", "Cherish  エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+                    manager.current = current;
+                    value += 1;
+                    progress.Progress.Value = value;
+                }
+                foreach (string d in dirs.Keys)
+                {
+                    try
+                    {
+                        Directory.Delete(d);
+                    }
+                    catch { }
+                }
+                progress.Close();
+            });
+            progress.ShowDialog();
+            manager.UpdateInfo();
+            SetLayout();
+        }
 
         private void AddContent(string fname, BitmapImage img)
         {
@@ -125,12 +223,12 @@ namespace Cherish
                         manager.Cd(fname);
                         try
                         {
-                            (string? res, Exception? ex) = manager.AddFile(f);
-                            if (ex is not null)
-                            {
-                                MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
+                            string res = manager.AddFile(f);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
                         }
                         finally
                         {
@@ -202,7 +300,7 @@ namespace Cherish
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show($"エラーが発生しました\n({ex.Message})", "Cherish  エラー", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                     finally
                     {
@@ -337,16 +435,7 @@ namespace Cherish
                 e.Handled= true;
                 return;
             }
-            foreach (string f in (string[])e.Data.GetData(DataFormats.FileDrop, false))
-            {
-                (string res, Exception ex) = manager.AddFile(f);
-                if (ex is not null)
-                {
-                    MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-            }
-            SetLayout();
+            Register((string[])e.Data.GetData(DataFormats.FileDrop));
         }
         private bool CheckDropAble(DragEventArgs e)
         {

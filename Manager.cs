@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.DirectoryServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Diagnostics;
 
 namespace Cherish
 {
@@ -106,26 +107,19 @@ namespace Cherish
             return r;
         }
 
-        public (string?, Exception?) AddFile(string path)
+        public string AddFile(string path)
         {
             string name = GetUnusedName(path);
-            try
+            if (File.Exists(path))
             {
-                if (File.Exists(path))
-                {
-                    File.Move(path, GetPath(name));
-                }
-                else
-                {
-                    Directory.Move(path, GetPath(name));
-                }
+                File.Move(path, GetPath(name));
             }
-            catch (Exception e)
+            else if (Directory.Exists(path))
             {
-                return (null, e);
+                Directory.Move(path, GetPath(name));
             }
             UpdateInfo();
-            return (GetPath(name), null);
+            return GetPath(name);
         }
         public void Delete(string name)
         {

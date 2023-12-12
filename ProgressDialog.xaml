@@ -1,0 +1,14 @@
+﻿<Window x:Class="Cherish.ProgressDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cherish"
+        mc:Ignorable="d"
+        Title="Cherish" Height="158" Width="374" Background="#FF1B1B1B">
+    <Grid>
+        <ProgressBar x:Name="Progress" HorizontalAlignment="Center" Height="24" Margin="0,90,0,0" VerticalAlignment="Top" Width="280" Background="#FF78819F" Foreground="#FF34AF4B"/>
+        <Label x:Name="Label" Content="" Margin="0,47,0,0" VerticalAlignment="Top" Foreground="#FFCDD1DA" Height="38" FontSize="18" Width="328" HorizontalAlignment="Right"/>
+
+    </Grid>
+</Window>

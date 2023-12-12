@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows.Media.Imaging;
 
@@ -9,6 +11,23 @@ namespace Cherish
         public static int CountString(string s)
         {
             return Encoding.GetEncoding("Shift_JIS").GetByteCount(s);
+        }
+        public static string Substring(string s, int start, int num=-1)
+        {
+            if (CountString(s) <= start) return "";
+            var res = "";
+            var count = 0;
+            if (num < 0) num = s.Length*2;
+            for (int i=0; ; i++)
+            {
+                if (s.Length <= i) break;
+                var c = s[i].ToString();
+                count += CountString(c);
+                if (count < start) continue;
+                else if (start+num <= count) break;
+                else res += c;
+            }
+            return res;
         }
         public static string FormatString(string s, int col, int row=1, bool space=true)
         {
@@ -24,18 +43,18 @@ namespace Cherish
                 string res = "";
                 for (int i = 0; i < row; i++)
                 {
-                    var start = 24 * i;
-                    if (s.Length < start)
+                    var start = col * i;
+                    if (length < start)
                     {
                         break;
                     }
                     else if (i+1 < row)
                     {
-                        res += s.Substring(start, col - 3) + "\n";
+                        res += Substring(s, start, col) + "\n";
                     }
                     else
                     {
-                        res += s.Length <= start+col-6 ? s.Substring(start) : s.Substring(start, col-6);
+                        res += Substring(s, start, col-6);
                     }
                 }
                 return res + "...";
