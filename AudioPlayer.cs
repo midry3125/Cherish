@@ -79,6 +79,7 @@ namespace Cherish
                     Play();
                 }
                 catch { }
+                autoReplayTimer.Stop();
             };
             Dispatcher.BeginInvoke(() =>
             {
