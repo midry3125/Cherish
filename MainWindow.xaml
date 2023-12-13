@@ -19,7 +19,7 @@
         <!-- ボーダーの色 -->
         <SolidColorBrush x:Key="ScrollBarBorderBrush" Color="#16160e" />
         <!-- トラック（レーン）の色 -->
-        <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#66ffffff" />
+        <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#141317" />
         <!-- 三角の色 -->
         <SolidColorBrush x:Key="ScrollBarHilightBrush" Color="#000000" />
         <!-- ボタンを押した時の色 -->
