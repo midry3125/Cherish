@@ -22,6 +22,7 @@ namespace Cherish
         public bool isBarDrawn = false;
         private bool isStoppedByUser = false;
         private bool isSliderChangeAble = true;
+        private bool isSliderChangedByUser = false;
         private int beforePos = 0;
         private double ignoreMinChange;
         private StackPanel spectrum;
@@ -72,8 +73,12 @@ namespace Cherish
             autoReplayTimer.Interval= TimeSpan.FromSeconds(1);
             autoReplayTimer.Tick += (sender, e) =>
             {
-                stream.Position = 0;
-                Play();
+                try
+                {
+                    stream.Position = 0;
+                    Play();
+                }
+                catch { }
             };
             Dispatcher.BeginInvoke(() =>
             {
@@ -129,14 +134,15 @@ namespace Cherish
         {
             var pos = (int)(stream.Length * (double)slider.Value / 100);
             autoReplayTimer.Stop();
-            if (Math.Abs(pos - beforePos) > ignoreMinChange)
+            if (isSliderChangedByUser & Math.Abs(pos - beforePos) > ignoreMinChange)
             {
                 stream.Position = pos;
                 beforePos = pos;
-                var p = (double)pos / stream.Length;
-                var width = (int)(p * yet_play_spectrum.Width);
-                if (width != played_spectrum.Width) played_spectrum.Width = width;
             }
+            isSliderChangedByUser = true;
+            var p = (double)pos / stream.Length;
+            var width = (int)(p * yet_play_spectrum.Width);
+            if (width != played_spectrum.Width) played_spectrum.Width = width;
         }
 
         public void Finish()
@@ -172,6 +178,7 @@ namespace Cherish
                 if (width != played_spectrum.Width) played_spectrum.Width = width;
                 if (isSliderChangeAble)
                 {
+                    isSliderChangedByUser = false;
                     slider.Value = (int)(p * 100);
                     beforePos = (int)stream.Position;
                 }

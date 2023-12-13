@@ -183,11 +183,6 @@ namespace Cherish
                     progress.Progress.Value += 1;
                     progress.Refresh();
                 }
-                progress.Progress.Value = 0;
-                progress.Label.Content = "後処理中...";
-                progress.Refresh();
-                progress.Progress.IsIndeterminate = true;
-                progress.Refresh();
                 foreach (string d in dirs)
                 {
                     try
