@@ -51,8 +51,7 @@ namespace Cherish
         }
         public int OpenDialog(string path)
         {
-            Label.Content = Util.FormatString($"\"{Util.FormatString(path, 20, 1, false)}\"が他のプロセスによって開かれているため処理ができません", 50, 3, false);
-            Debug.WriteLine(Label.Content);
+            Label.Content = Util.FormatString($"\"{Util.FormatString(path, 20, 1, false)}\"が他のプロセスによって開かれているため処理ができません", 58, 2, false);
             ShowDialog();
             return result;
         }

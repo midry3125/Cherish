@@ -64,6 +64,7 @@ namespace Cherish
             ContentView.Children.Clear();
             row = 0;
             content_counter = 0;
+            manager.UpdateInfo();
             Dispatcher.BeginInvoke(() =>
             {
                 foreach (string f in manager.categories)
@@ -98,9 +99,10 @@ namespace Cherish
         }
         private void Register(string[] targets)
         {
+            Debug.WriteLine(manager.current);
             var fileNum = 0;
             var paths = new Dictionary<string, string>();
-            var dirs = new Dictionary<string, string>();
+            var dirs = new List<string>();
             void SearchFiles(string dir, string p)
             {
                 var dirname = Path.GetFileName(dir);
@@ -112,7 +114,8 @@ namespace Cherish
                     progress.Refresh();
                 }
                 foreach (string d in Directory.GetDirectories(p)){
-                    dirs.Add(d, Path.Combine(dirname, Path.GetRelativePath(dir, d)));
+                    dirs.Add(d);
+                    manager.CreateCategory(Path.Combine(dirname, Path.GetRelativePath(dir, d)), false);
                     SearchFiles(dir, d);
                 }
             }
@@ -125,7 +128,9 @@ namespace Cherish
                 {
                     if (Directory.Exists(t))
                     {
-                        dirs.Add(t, Path.GetFileName(t));
+                        var d = Path.GetFileName(t);
+                        dirs.Add(t);
+                        manager.CreateCategory(d, false);
                         SearchFiles(t, t);
                     }
                     else
@@ -139,20 +144,17 @@ namespace Cherish
                 progress.Progress.Value = 0;
                 progress.Refresh();
                 var skip = false;
-                foreach (string d in dirs.Values)
-                {
-                    manager.CreateCategory(d);
-                }
                 var current = manager.current;
-                var value = 0;
                 foreach (KeyValuePair<string, string> item in paths)
                 {
-                    manager.Cd(Path.GetDirectoryName(item.Value));
+                    progress.Label.Content = $"移動中...  {progress.Progress.Value}/{fileNum}";
+                    var dirname = Path.GetDirectoryName(item.Value);
+                    manager.Cd(dirname);
                     while (true)
                     {
                         try
                         {
-                            manager.AddFile(item.Key);
+                            manager.AddFile(item.Key, false);
                             break;
                         }
                         catch (IOException)
@@ -160,13 +162,15 @@ namespace Cherish
                             if (skip) break;
                             var dialog = new UsingOtherProcessDialog();
                             dialog.OpenDialog(Path.GetFileName(item.Key));
-                            switch (dialog.result)
+                            if (dialog.result == UsingOtherProcessDialog.SKIP){
+                                skip = dialog.allSkip;
+                                break;
+                            }
+                            else if (dialog.result == UsingOtherProcessDialog.STOP)
                             {
-                                case UsingOtherProcessDialog.SKIP:
-                                    skip = dialog.allSkip;
-                                    break;
-                                case UsingOtherProcessDialog.STOP:
-                                    return;
+                                progress.Close();
+                                SetLayout();
+                                return;
                             }
                         }
                         catch (Exception e)
@@ -176,21 +180,25 @@ namespace Cherish
                         }
                     }
                     manager.current = current;
-                    value += 1;
-                    progress.Progress.Value = value;
+                    progress.Progress.Value += 1;
+                    progress.Refresh();
                 }
-                foreach (string d in dirs.Keys)
+                progress.Progress.Value = 0;
+                progress.Label.Content = "後処理中...";
+                progress.Refresh();
+                progress.Progress.IsIndeterminate = true;
+                progress.Refresh();
+                foreach (string d in dirs)
                 {
                     try
                     {
-                        Directory.Delete(d);
+                        Directory.Delete(d, true);
                     }
                     catch { }
                 }
                 progress.Close();
             });
             progress.ShowDialog();
-            manager.UpdateInfo();
             SetLayout();
         }
 
@@ -218,25 +226,26 @@ namespace Cherish
             {
                 panel.Drop += (s, e) =>
                 {
-                    foreach (string f in (string[])e.Data.GetData(DataFormats.FileDrop, false))
+                    var paths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                    if (CheckDropAble(e))
                     {
                         manager.Cd(fname);
-                        try
+                        Register(paths);
+                        manager.Cd();
+                    }
+                    else
+                    {
+                        foreach (string f in paths)
                         {
-                            string res = manager.AddFile(f);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-                        finally
-                        {
-                            if (CheckDropAble(e)) manager.Cd();
-                            else {
+                            manager.Cd(fname);
+                            try
+                            {
+                                manager.AddFile(f, false);
+                                manager.Cd();
+                                manager.Delete(Path.GetFileName(f), false);
                                 if (subWindow is not null)
                                 {
-                                    if (subWindow.filename == System.IO.Path.GetFileName(f))
+                                    if (subWindow.filename == Path.GetFileName(f))
                                     {
                                         if (availableContents.Count == 1)
                                         {
@@ -249,11 +258,14 @@ namespace Cherish
                                         }
                                     }
                                 }
-                                manager.Cd();
-                                manager.Delete(System.IO.Path.GetFileName(f));
                             }
-                            SetLayout();
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
                         }
+                        SetLayout();
                     }
                     e.Handled = true;
                 };
@@ -359,7 +371,7 @@ namespace Cherish
                                 panel.ChangeAbleName();
                                 break;
                             case DELETEFILE:
-                                var res = MessageBox.Show($"ファイル \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Library", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
+                                var res = MessageBox.Show($"ファイル \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Cherish", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
                                 if (res == MessageBoxResult.Yes)
                                 {
                                     manager.Delete(fname);
@@ -525,11 +537,11 @@ namespace Cherish
             image.Margin = new Thickness(0, 0, 70, 0);
             Children.Add(image);
             name = new();
-            name.Text = Util.FormatString(filename, 24, 2);
+            name.Text = Util.FormatString(filename, 26, 2);
             name.Height = 37;
-            name.Width = 167;
+            name.Width = 170;
             name.FontSize = 14;
-            name.Margin = new Thickness(0, 3, 83, 0);
+            name.Margin = new Thickness(0, 3, 79, 0);
             name.HorizontalContentAlignment = HorizontalAlignment.Left;
             name.VerticalContentAlignment = VerticalAlignment.Center;
             name.Foreground = NormalNameTextColor;

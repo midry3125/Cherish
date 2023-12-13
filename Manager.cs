@@ -80,34 +80,32 @@ namespace Cherish
         {
             return Path.Combine(current, name);
         }
-
-        public void Cd(string name="")
+        public void Cd()
         {
-            if (name == "")
+            if (current != root)
             {
-                if (current != root)
-                {
-                    current = Path.GetDirectoryName(current);
-                }
+                current = Path.GetDirectoryName(current);
+                UpdateInfo();
             }
-            else
-            {
-                current = Path.Combine(current, name);
-            }
+        }
+
+        public void Cd(string name)
+        {
+            current = Path.Combine(current, name);
             UpdateInfo();
         }
-        public bool CreateCategory(string name)
+        public bool CreateCategory(string name, bool update=true)
         {
             var r = !Contains(name);
             if (r)
             {
                 Directory.CreateDirectory(GetPath(name));
-                UpdateInfo();
+                if (update) UpdateInfo();
             }
             return r;
         }
 
-        public string AddFile(string path)
+        public string AddFile(string path, bool update=true)
         {
             string name = GetUnusedName(path);
             if (File.Exists(path))
@@ -118,10 +116,10 @@ namespace Cherish
             {
                 Directory.Move(path, GetPath(name));
             }
-            UpdateInfo();
+            if (update) UpdateInfo();
             return GetPath(name);
         }
-        public void Delete(string name)
+        public void Delete(string name, bool update=true)
         {
             var path = GetPath(name);
             if (categories.Contains(name))
@@ -132,7 +130,7 @@ namespace Cherish
             {
                 File.Delete(path);
             }
-            UpdateInfo();
+            if (update) UpdateInfo();
         }
         public void Rename(string from, string to)
         {

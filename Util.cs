@@ -41,6 +41,7 @@ namespace Cherish
             else
             {
                 string res = "";
+                int end = 0;
                 for (int i = 0; i < row; i++)
                 {
                     var start = col * i;
@@ -56,8 +57,9 @@ namespace Cherish
                     {
                         res += Substring(s, start, col-6);
                     }
+                    end = start+col;
                 }
-                return res + "...";
+                return end <= length ?  res.Trim() + "..." : res.Trim();
             }
         }
         public static BitmapImage GenerateBmp(byte[] b)
