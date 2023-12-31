@@ -96,6 +96,7 @@ namespace Cherish
         }
         public bool CreateCategory(string name, bool update=true)
         {
+            if (name == "") return false;
             var r = !Contains(name);
             if (r)
             {

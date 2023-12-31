@@ -20,7 +20,13 @@ namespace Cherish
 
         private void OnTextChanged(object sender, TextChangedEventArgs e)
         {
-            if (manager.Contains(CategoryName.Text))
+            CategoryName.Text = CategoryName.Text.TrimStart();
+            if (CategoryName.Text == "")
+            {
+                CreateButton.IsEnabled = false;
+                ErrorLabel.Content = "";
+            }
+            else if (manager.Contains(CategoryName.Text))
             {
                 CreateButton.IsEnabled = false;
                 ErrorLabel.Content = "既に存在しています";
@@ -34,7 +40,7 @@ namespace Cherish
 
         private void OnButtonClicked(object sender, RoutedEventArgs e)
         {
-            if (manager.CreateCategory(CategoryName.Text)) Close();
+            if (manager.CreateCategory(CategoryName.Text.Trim())) Close();
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
