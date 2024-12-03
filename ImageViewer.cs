@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,6 +10,8 @@ namespace Cherish
 {
     public class ImageViewer: StackPanel
     {
+        private double maxWidth = SystemParameters.PrimaryScreenWidth * 0.9;
+        private double maxHeight = SystemParameters.PrimaryScreenHeight * 0.9;
         public Image image;
         private string path;
         private string filename;
@@ -19,8 +22,9 @@ namespace Cherish
             path = p;
             filename = Path.GetFileName(path);
             image = new Image();
-            image.Height = window.Height - 50;
-            image.Width = window.Width - 30;
+            Fit();
+            image.VerticalAlignment = VerticalAlignment.Center;
+            image.HorizontalAlignment = HorizontalAlignment.Center;
             image.MouseDown += DragFile;
             Dispatcher.BeginInvoke(() =>
             {
@@ -40,6 +44,11 @@ namespace Cherish
                 image.Source = bmp;
                 Children.Add(image);
             });
+        }
+        public void Fit(bool max=false)
+        {
+            image.Height = max ? maxHeight : window.Height * 0.9;
+            image.Width = max ? maxWidth : window.Width * 0.9;
         }
         private void DragFile(object sender, MouseButtonEventArgs e)
         {

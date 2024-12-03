@@ -10,6 +10,9 @@ using System.DirectoryServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Diagnostics;
+using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
+//using System.Windows.Shapes;
 
 namespace Cherish
 {
@@ -17,14 +20,28 @@ namespace Cherish
     {
         private string[] AudioExts = new string[4] { ".mp3", ".wav", ".aiff", ".aif" };
         private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
-        public string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Cherish");
+        private string[] MovieExts = new string[6] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
+        public string drive="";
+        public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Cherish");
+        public static string config_file = Path.Combine(program_dir, "config.json");
+        public Config config;
         public string current;
+        public string dcurrent="";
         public string root;
+        public string search_word="";
+        public bool isChanged;
         public List<string> files = new();
-        public List<string> audioFiles;
-        public List<string> imageFiles;
-        public List<string> otherFiles;
-        public List<string> categories;
+        public List<string> audioFiles = new();
+        public List<string> imageFiles = new();
+        public List<string> movieFiles = new();
+        public List<string> otherFiles = new();
+        public List<string> categories = new();
+
+        public List<string> faudioFiles = new();
+        public List<string> fimageFiles = new();
+        public List<string> fmovieFiles = new();
+        public List<string> fotherFiles = new();
+        public List<string> fcategories = new();
         public Manager()
         {
             root = Path.Combine(program_dir, "Files");
@@ -34,7 +51,78 @@ namespace Cherish
                 Directory.CreateDirectory(program_dir);
                 File.SetAttributes(program_dir, FileAttributes.Normal);
                 Directory.CreateDirectory(Path.Combine(program_dir, "Files"));
+                config = new Config
+                {
+                    favorites=new List<string>()
+                };
+                File.WriteAllText(config_file, JsonSerializer.Serialize(config));
             }
+            else if (!File.Exists(config_file))
+            {
+                config = new Config
+                {
+                    favorites = new List<string>()
+                };
+                File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+            }
+            else
+            {
+                config = JsonSerializer.Deserialize<Config>(File.ReadAllText(config_file))!;
+            }
+            UpdateInfo();
+        }
+        public void AddFavorite(string name)
+        {
+            var p = GetPath(name);
+            var ext = Path.GetExtension(p);
+            config.favorites.Add(p);
+            if (Directory.Exists(p))
+            {
+                fcategories.Add(p);
+                categories.Remove(name);
+            }
+            else if (AudioExts.Contains(ext))
+            {
+                faudioFiles.Add(p);
+                audioFiles.Remove(name);
+            }
+            else if (ImageExts.Contains(ext))
+            {
+                fimageFiles.Add(p);
+                imageFiles.Remove(name);
+            }
+            else if (MovieExts.Contains(ext))
+            {
+                fmovieFiles.Add(p);
+                movieFiles.Remove(name);
+            }
+            else
+            {
+                fotherFiles.Add(p);
+                otherFiles.Remove(name);
+            }
+            File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+        }
+        public void RemoveFavorite(string name)
+        {
+            var p = GetPath(name);
+            config.favorites.Remove(p);
+            fcategories.Remove(name);
+            faudioFiles.Remove(name);
+            fmovieFiles.Remove(name);
+            fimageFiles.Remove(name);
+            fotherFiles.Remove(name);
+            File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+        }
+        public void SetDrive(string d)
+        {
+            drive = d;
+            dcurrent = drive;
+            UpdateInfo();
+        }
+        public void RemoveDrive()
+        {
+            drive = "";
             UpdateInfo();
         }
 
@@ -52,47 +140,103 @@ namespace Cherish
         }
         public bool Contains(string name)
         {
-            return files.Contains(name) | categories.Contains(name);
+            return files.Contains(name) | categories.Contains(name) | fcategories.Contains(name);
+        }
+        public void Search(string word)
+        {
+            search_word = word;
+            UpdateInfo();
+        }
+        public void Search()
+        {
+            search_word = "";
+            UpdateInfo();
         }
         public void UpdateInfo()
         {
-            files = new();
-            audioFiles = new();
-            imageFiles = new();
-            otherFiles = new();
-            categories = Directory.GetDirectories(current).Select(d => Path.GetFileName(d)).ToList();
-            categories.Sort();
-            foreach (string f in Directory.GetFiles(current))
+            List<string> tfiles = new();
+            List<string> taudioFiles = new();
+            List<string> timageFiles = new();
+            List<string> tmovieFiles = new();
+            List<string> totherFiles = new();
+            List<string> tcategories = new();
+            var target = drive == "" ? current : dcurrent;
+            var ecategories = Directory.GetDirectories(target).Select(d => Path.GetFileName(d));
+            if (search_word != "")
             {
-                var path = Path.GetFileName(f);
-                files.Add(path);
-                var ext = Path.GetExtension(path);
-                if (AudioExts.Contains(ext)) audioFiles.Add(path);
-                else if (ImageExts.Contains(ext)) imageFiles.Add(path);
-                else otherFiles.Add(path);
-                audioFiles.Sort();
-                imageFiles.Sort();
-                otherFiles.Sort();
+                ecategories = ecategories.Where(d => d.Contains(search_word));
             }
+            tcategories = ecategories.ToList();
+            foreach (string f in Directory.GetFiles(target))
+            {
+                var name = Path.GetFileName(f);
+                if (search_word != "")
+                {
+                    if (!name.Contains(search_word)) continue;
+                }
+                tfiles.Add(name);
+                var ext = Path.GetExtension(name);
+                if (AudioExts.Contains(ext)) taudioFiles.Add(name);
+                else if (ImageExts.Contains(ext)) timageFiles.Add(name);
+                else if (MovieExts.Contains(ext)) tmovieFiles.Add(name);
+                else totherFiles.Add(name);
+            }
+            isChanged = tcategories.Except(categories).Except(fcategories).Any() | categories.Except(tcategories).Any() | tfiles.Except(files).Any() | files.Except(tfiles).Any();
+            fcategories = tcategories.Where(d => config.favorites.Contains(GetPath(d))).ToList();
+            faudioFiles = taudioFiles.Where(d => config.favorites.Contains(GetPath(d))).ToList();
+            fmovieFiles = tmovieFiles.Where(d => config.favorites.Contains(GetPath(d))).ToList();
+            fimageFiles = timageFiles.Where(d => config.favorites.Contains(GetPath(d))).ToList();
+            fotherFiles = tfiles.Except(taudioFiles).Except(tmovieFiles).Except(timageFiles).Where(d => config.favorites.Contains(GetPath(d))).ToList();
+            categories = tcategories.Except(fcategories).ToList();
+            files = tfiles;
+            audioFiles = taudioFiles.Except(faudioFiles).ToList();
+            imageFiles = timageFiles.Except(fimageFiles).ToList();
+            movieFiles = tmovieFiles.Except(fmovieFiles).ToList();
+            otherFiles = totherFiles.Except(fotherFiles).ToList();
+            categories.Sort();
+            audioFiles.Sort();
+            imageFiles.Sort();
+            movieFiles.Sort();
+            otherFiles.Sort();
+            fcategories.Sort();
+            faudioFiles.Sort();
+            fimageFiles.Sort();
+            fmovieFiles.Sort();
+            fotherFiles.Sort();
         }
 
         public string GetPath(string name)
         {
-            return Path.Combine(current, name);
+            return Path.Combine(drive=="" ? current : dcurrent, name);
         }
         public void Cd()
         {
-            if (current != root)
+            if (drive == "")
             {
-                current = Path.GetDirectoryName(current);
+                if (current != root)
+                {
+                    current = Path.GetDirectoryName(current);
+                    UpdateInfo();
+                }
+            }else if (drive != dcurrent)
+            {
+                dcurrent = Path.GetDirectoryName(dcurrent);
                 UpdateInfo();
             }
         }
 
         public void Cd(string name)
         {
-            current = Path.Combine(current, name);
-            UpdateInfo();
+            if (drive == "")
+            {
+                current = Path.Combine(current, name);
+                UpdateInfo();
+            }
+            else
+            {
+                dcurrent = Path.Combine(dcurrent, name);
+                UpdateInfo();
+            }
         }
         public bool CreateCategory(string name, bool update=true)
         {
@@ -141,5 +285,10 @@ namespace Cherish
             else File.Move(fpath, GetPath(tpath));
             UpdateInfo();
         }
+    }
+
+    public class Config
+    {
+        public List<string> favorites { get; set; }
     }
 }
