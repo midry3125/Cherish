@@ -10,8 +10,8 @@ namespace Cherish
 {
     public class ImageViewer: StackPanel
     {
-        private double maxWidth = SystemParameters.PrimaryScreenWidth * 0.9;
-        private double maxHeight = SystemParameters.PrimaryScreenHeight * 0.9;
+        private double maxWidth = SystemParameters.PrimaryScreenWidth;
+        private double maxHeight = SystemParameters.PrimaryScreenHeight;
         public Image image;
         private string path;
         private string filename;
@@ -22,7 +22,7 @@ namespace Cherish
             path = p;
             filename = Path.GetFileName(path);
             image = new Image();
-            Fit();
+            Fit(window.WindowState == WindowState.Maximized);
             image.VerticalAlignment = VerticalAlignment.Center;
             image.HorizontalAlignment = HorizontalAlignment.Center;
             image.MouseDown += DragFile;
@@ -47,8 +47,8 @@ namespace Cherish
         }
         public void Fit(bool max=false)
         {
-            image.Height = max ? maxHeight : window.Height * 0.9;
-            image.Width = max ? maxWidth : window.Width * 0.9;
+            image.Height = max ? maxHeight : window.Height;
+            image.Width = max ? maxWidth : window.Width;
         }
         private void DragFile(object sender, MouseButtonEventArgs e)
         {
