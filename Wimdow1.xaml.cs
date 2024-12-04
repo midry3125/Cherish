@@ -124,7 +124,9 @@ namespace Cherish
                 if (type == ContentInfo.MOVIE)
                 {
                     if (ignore) return;
+                    ignore = true;
                     SeekBar.Value = moviePlayer.GetTime();
+                    ignore = false;
                     SeekBar.Visibility = Visibility.Visible;
                     grid.Opacity = 0.5;
                     Cursor = Cursors.Arrow;
