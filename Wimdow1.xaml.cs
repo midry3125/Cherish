@@ -27,7 +27,7 @@ namespace Cherish
     public partial class Window1 : System.Windows.Window
     {
         private int type;
-        public bool isDrag;
+        public bool ignore;
         public StackPanel panel;
         private MainWindow window;
         private WaveOutEvent device;
@@ -99,7 +99,9 @@ namespace Cherish
             {
                 if (type == ContentInfo.MOVIE)
                 {
+                    ignore = true;
                     SeekBar.Value = moviePlayer.GetTime();
+                    ignore = false;
                     SeekBar.Visibility = Visibility.Visible;
                     grid.Opacity = 0.5;
                     Cursor = Cursors.Arrow;
@@ -121,6 +123,8 @@ namespace Cherish
             {
                 if (type == ContentInfo.MOVIE)
                 {
+                    if (ignore) return;
+                    SeekBar.Value = moviePlayer.GetTime();
                     SeekBar.Visibility = Visibility.Visible;
                     grid.Opacity = 0.5;
                     Cursor = Cursors.Arrow;
@@ -209,12 +213,12 @@ namespace Cherish
         }
         private void OnDragStarted(object sender, DragStartedEventArgs e)
         {
-            isDrag = true;
+            ignore = true;
         }
         private void OnDragCompleted(object sender, DragCompletedEventArgs e)
         {
             moviePlayer.MoveTo((int)SeekBar.Value);
-            isDrag = false;
+            ignore = false;
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -235,7 +239,7 @@ namespace Cherish
 
         private void OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!isDrag & moviePlayer is not null)
+            if (!ignore & moviePlayer is not null)
             {
                 moviePlayer.MoveTo((int)SeekBar.Value);
             }
