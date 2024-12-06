@@ -185,6 +185,7 @@ namespace Cherish
                             audioPlayer = new(this, path);
                             device = audioPlayer.device;
                             panel = audioPlayer;
+                            WindowState = WindowState.Normal;
                             ResizeMode = ResizeMode.NoResize;
                             break;
                         case ContentInfo.IMAGE:
