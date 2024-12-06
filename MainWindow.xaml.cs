@@ -149,9 +149,7 @@ namespace Cherish
                         AddContent(f, file_icon);
                     }
                 }
-                catch (System.IO.FileNotFoundException e) {
-                    System.Diagnostics.Debug.WriteLine(e);
-                }
+                catch (System.IO.FileNotFoundException) { }
                 catch (System.IO.DirectoryNotFoundException) { }
             });
             BackButton.IsEnabled = drive == "" ?  manager.root != manager.current : manager.drive != manager.dcurrent;
@@ -169,7 +167,6 @@ namespace Cherish
         }
         private void Register(string[] targets)
         {
-            Debug.WriteLine(manager.current);
             var fileNum = 0;
             var paths = new Dictionary<string, string>();
             var dirs = new List<string>();
@@ -534,7 +531,7 @@ namespace Cherish
             }
             Grid.SetColumn(panel, col);
             Grid.SetRow(panel, row);
-            if (img == audio_icon | img == image_icon)
+            if (img == audio_icon | img == image_icon | img == movie_icon)
             {
                 availableContents.Add(panel);
                 panel.index = availableContents.Count - 1;

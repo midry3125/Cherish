@@ -40,7 +40,7 @@ namespace Cherish
             };
             VerticalAlignment = VerticalAlignment.Center;
             HorizontalAlignment = HorizontalAlignment.Center;
-            Fit();
+            Fit(window.WindowState == WindowState.Maximized);
             Children.Add(player);
             Play();
             timer = new();
@@ -68,8 +68,8 @@ namespace Cherish
 
         public void Fit(bool max=false)
         {
-            player.Width = max ? maxWidth : window.Width*0.9;
-            player.Height = max ? maxHeight : window.Height*0.9;
+            player.Width = max ? maxWidth : window.Width;
+            player.Height = max ? maxHeight : window.Height;
         }
         public void Move(int seconds)
         {

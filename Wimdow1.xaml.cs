@@ -69,22 +69,16 @@ namespace Cherish
                         }
                         break;
                     case Key.Left:
-                        if (type == ContentInfo.MOVIE)
+                        if (type == ContentInfo.MOVIE & Keyboard.Modifiers != ModifierKeys.Control)
                         {
-                            if (moviePlayer is not null)
-                            {
-                                moviePlayer.Move(-5);
-                            }
+                            if (moviePlayer is not null) moviePlayer.Move(-5);
                         }
                         else Back();
                         break;
                     case Key.Right:
-                        if (type == ContentInfo.MOVIE)
+                        if (type == ContentInfo.MOVIE & Keyboard.Modifiers != ModifierKeys.Control)
                         {
-                            if (moviePlayer is not null)
-                            {
-                                moviePlayer.Move(5);
-                            }
+                            if (moviePlayer is not null) moviePlayer.Move(5);
                         }
                         else Next();
                         break;
@@ -146,8 +140,9 @@ namespace Cherish
         public void Init()
         {
             if (audioPlayer is not null) audioPlayer.Finish();
-            else if (imageViewer is not null) imageViewer.image.Source = null;
-            else if (moviePlayer is not null) moviePlayer.Finish();
+            if (imageViewer is not null) imageViewer.image.Source = null;
+            if (moviePlayer is not null) moviePlayer.Finish();
+            SeekBar.Visibility = Visibility.Collapsed;
         }
         public void Next()
         {
