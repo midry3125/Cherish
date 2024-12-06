@@ -20,9 +20,11 @@ namespace Cherish
     {
         private const string NEWCATEGORY = "NewCategory";
         private const string DELETECATEGORY = "DeleteCategory";
-        private const string DELETEFILE = "DeleteFile";
+        private const string DELETEFILE = "Delete";
         private const string RENAME = "Rename";
         private const string OPENBYEXPLORER = "OpenByExplorer";
+        private const string OPENWITHSTANDARD = "OpenWithStandard";
+        private const string OPEN = "Open";
         public DispatcherTimer timer = new DispatcherTimer();
         public BitmapImage category_icon;
         public BitmapImage audio_icon;
@@ -451,7 +453,17 @@ namespace Cherish
                                 SetLayout();
                                 break;
                             case OPENBYEXPLORER:
-                                Process.Start("explorer.exe", manager.current);
+                                Process.Start("explorer.exe",　drive.Any() ? manager.dcurrent : manager.current);
+                                break;
+                            case OPEN:
+                                panel.DoFocus();
+                                break;
+                            case OPENWITHSTANDARD:
+                                Process.Start(new ProcessStartInfo(){
+                                    FileName = manager.GetPath(fname),
+                                    UseShellExecute = true,
+                                    CreateNoWindow = true
+                                });
                                 break;
                             case RENAME:
                                 panel.ChangeAbleName();
@@ -488,6 +500,16 @@ namespace Cherish
                 menuItem3.Click += FileMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
                 contextMenu.Items.Add(new Separator());
+                var menuItem6 = new MenuItem();
+                menuItem6.Header = "開く";
+                menuItem6.Name = OPEN;
+                menuItem6.Click += FileMenuItemClicked;
+                contextMenu.Items.Add(menuItem6);
+                var menuItem5 = new MenuItem();
+                menuItem5.Header = "既定のアプリで開く";
+                menuItem5.Name = OPENWITHSTANDARD;
+                menuItem5.Click += FileMenuItemClicked;
+                contextMenu.Items.Add(menuItem5);
                 var menuItem4 = new MenuItem();
                 menuItem4.Header = "エクスプローラーで開く";
                 menuItem4.Name = OPENBYEXPLORER;
