@@ -181,7 +181,7 @@ namespace Cherish
                             device = audioPlayer.device;
                             panel = audioPlayer;
                             WindowState = WindowState.Normal;
-                            ResizeMode = ResizeMode.NoResize;
+                            ResizeMode = ResizeMode.NoResize　| ResizeMode.CanMinimize;
                             break;
                         case ContentInfo.IMAGE:
                             Height = 500;

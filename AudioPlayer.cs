@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Media;
@@ -67,7 +65,7 @@ namespace Cherish
             grid.Children.Add(slider);
             Children.Add(grid);
             timer = new(DispatcherPriority.Normal);
-            timer.Interval = TimeSpan.FromMilliseconds(100);
+            timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += Update;
             autoReplayTimer = new();
             autoReplayTimer.Interval= TimeSpan.FromSeconds(1);
@@ -137,10 +135,11 @@ namespace Cherish
             autoReplayTimer.Stop();
             if (isSliderChangedByUser & Math.Abs(pos - beforePos) > ignoreMinChange)
             {
+                timer.Stop();
                 stream.Position = pos;
                 beforePos = pos;
+                timer.Start();
             }
-            isSliderChangedByUser = true;
             var p = (double)pos / stream.Length;
             var width = (int)(p * yet_play_spectrum.Width);
             if (width != played_spectrum.Width) played_spectrum.Width = width;
@@ -181,6 +180,7 @@ namespace Cherish
                 {
                     isSliderChangedByUser = false;
                     slider.Value = (int)(p * 100);
+                    isSliderChangedByUser = true;
                     beforePos = (int)stream.Position;
                 }
             }
