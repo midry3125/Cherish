@@ -1,23 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Windows.Media;
 
 using NAudio.Wave;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Cherish
 {
@@ -26,27 +16,55 @@ namespace Cherish
     /// </summary>
     public partial class Window1 : System.Windows.Window
     {
+        private const string CONTINOUS = "ContinousPlayConfig";
         private int type;
+        private bool continuous;
         public bool ignore;
         public StackPanel panel;
-        private MainWindow window;
+        public MainWindow window;
         private WaveOutEvent device;
         private AudioPlayer audioPlayer;
         private ImageViewer imageViewer;
         private MoviePlayer moviePlayer;
         public string filename;
         private int index;
+        private int audio_index;
         private int maxIndex;
         private bool nowLoading = false;
+        private Menu menu = new()
+        {
+            Background = (SolidColorBrush)new BrushConverter().ConvertFromString("#FF4D5866"),
+            Width = 735,
+            Height=17,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
         private DispatcherTimer SeekCancelTimer;
-        public Window1(MainWindow w, int idx)
+        public Window1(MainWindow w, int idx, int audioidx)
         {
             InitializeComponent();
             window = w;
             index = idx;
+            audio_index = audioidx;
+            continuous = window.manager.config.continuous;
+            var menuItem = new MenuItem()
+            {
+                Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString("White"),
+                Header = "設定",
+            };
+            var menuItem1 = new MenuItem()
+            {
+                Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString("Black"),
+                Header = "連続再生",
+                Name = CONTINOUS,
+                IsCheckable = true,
+                IsChecked = window.manager.config.continuous
+            };
+            menuItem1.Click += MenuItemClicked;
+            menuItem.Items.Add(menuItem1);
+            menu.Items.Add(menuItem);
             KeyDown += (sender, e) =>
             {
-                maxIndex = window.availableContents.Count - 1;
+                maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
                 switch (e.Key)
                 {
                     case Key.Space:
@@ -137,6 +155,18 @@ namespace Cherish
                 }
             };
         }
+        private void MenuItemClicked(object sender, RoutedEventArgs e)
+        {
+            var m = (MenuItem)sender;
+            switch (m.Name.ToString())
+            {
+                case CONTINOUS:
+                    continuous = !continuous;
+                    window.manager.config.ChangeContinuousState();
+                    maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+                    break;
+            }
+        }
         public void Init()
         {
             if (audioPlayer is not null) audioPlayer.Finish();
@@ -147,18 +177,19 @@ namespace Cherish
         public void Next()
         {
             if (nowLoading) return;
-            maxIndex = window.availableContents.Count - 1;
-            var idx = maxIndex <= index ? 0 : index + 1;
-            window.availableContents[idx].DoFocus();
+            maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+            var idx = audioPlayer is not null & continuous ? (maxIndex <= audio_index ? 0 : audio_index + 1) : (maxIndex <= index ? 0 : index + 1);
+            (audioPlayer is not null & continuous ? window.audioContents : window.availableContents)[idx].DoFocus();
+            System.Diagnostics.Debug.WriteLine($"{audioPlayer is not null} {continuous}");
         }
         public void Back()
         {
             if (nowLoading) return;
-            maxIndex = window.availableContents.Count - 1;
-            var idx = index <= 0 ? maxIndex : index - 1;
-            window.availableContents[idx].DoFocus();
+            maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+            var idx = audioPlayer is not null & continuous ? (audio_index <= 0 ? maxIndex : audio_index - 1) : (index <= 0 ? maxIndex : index - 1);
+            (audioPlayer is not null & continuous ? window.audioContents : window.availableContents)[idx].DoFocus();
         }
-        public void OpenFile(string path, int idx)
+        public void OpenFile(string path, int idx, int audioidx)
         {
             if (nowLoading) return;
             nowLoading = true;
@@ -199,9 +230,16 @@ namespace Cherish
                             break;
                     }
                     grid.Children.Add(panel);
+                    Grid.SetRow(panel, 1);
+                    if (info.type == ContentInfo.AUDIO)
+                    {
+                        grid.Children.Add(menu);
+                        Grid.SetRow(menu, 0);
+                    }
                     Topmost = true;
                     Activate();
                     index = idx;
+                    audio_index = audioidx;
                 }
                 finally
                 {

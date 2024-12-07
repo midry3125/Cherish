@@ -71,12 +71,19 @@ namespace Cherish
             autoReplayTimer.Interval= TimeSpan.FromSeconds(1);
             autoReplayTimer.Tick += (sender, e) =>
             {
-                try
+                if (w.window.manager.config.continuous)
                 {
-                    stream.Position = 0;
-                    Play();
+                    w.Next();
                 }
-                catch { }
+                else
+                {
+                    try
+                    {
+                        stream.Position = 0;
+                        Play();
+                    }
+                    catch { }
+                }
                 autoReplayTimer.Stop();
             };
             Dispatcher.BeginInvoke(() =>

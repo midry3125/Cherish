@@ -42,21 +42,13 @@ namespace Cherish
                 Directory.CreateDirectory(program_dir);
                 File.SetAttributes(program_dir, FileAttributes.Normal);
                 Directory.CreateDirectory(Path.Combine(program_dir, "Files"));
-                config = new Config
-                {
-                    favorites=new List<string>(),
-                    preview=true,
-                };
-                File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+                config = new Config();
+                config.Update();
             }
             else if (!File.Exists(config_file))
             {
-                config = new Config
-                {
-                    favorites = new List<string>(),
-                    preview = true,
-                };
-                File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+                config = new Config();
+                config.Update();
             }
             else
             {
@@ -282,15 +274,21 @@ namespace Cherish
 
     public class Config
     {
-        public List<string> favorites { get; set; }
-        public bool preview { get; set; }
+        public List<string> favorites { set; get; } = new();
+        public bool preview { set; get; } = true;
+        public bool continuous { set; get; } = false;
         public void Update()
         {
             File.WriteAllText(Manager.config_file, JsonSerializer.Serialize(this));
         }
-        public void ChengePreviewState()
+        public void ChangePreviewState()
         {
             preview = !preview;
+            Update();
+        }
+        public void ChangeContinuousState()
+        {
+            continuous = !continuous;
             Update();
         }
     }

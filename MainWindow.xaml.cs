@@ -27,6 +27,7 @@ namespace Cherish
         private const string OPENWITHSTANDARD = "OpenWithStandard";
         private const string OPEN = "Open";
         private const string PREVIEWCONFIG = "PreviewConfig";
+        private const string CONTINUOUSPLAY = "ContinuousPlayConfig";
         public DispatcherTimer timer = new DispatcherTimer();
         public BitmapImage category_icon;
         public BitmapImage audio_icon;
@@ -34,6 +35,7 @@ namespace Cherish
         public BitmapImage image_icon;
         public BitmapImage file_icon;
         public List<Content> availableContents;
+        public List<Content> audioContents;
         public Manager manager;
         private SolidColorBrush TextHintColor = (SolidColorBrush) new BrushConverter().ConvertFromString("#FF475054");
         private SolidColorBrush NormalSearchTextColor = (SolidColorBrush) new BrushConverter().ConvertFromString("#FF000000");
@@ -110,6 +112,7 @@ namespace Cherish
         public void SetLayout()
         {
             availableContents = new();
+            audioContents = new();
             row = 0;
             content_counter = 0;
             Dispatcher.BeginInvoke(() =>
@@ -178,8 +181,11 @@ namespace Cherish
                     Process.Start("explorer.exe", drive.Any() ? manager.dcurrent : manager.current);
                     break;
                 case PREVIEWCONFIG:
-                    manager.config.ChengePreviewState();
+                    manager.config.ChangePreviewState();
                     SetLayout();
+                    break;
+                case CONTINUOUSPLAY:
+                    manager.config.ChangeContinuousState();
                     break;
             }
         }
@@ -525,10 +531,17 @@ namespace Cherish
             }
             Grid.SetColumn(panel, col);
             Grid.SetRow(panel, row);
-            if (img == audio_icon | img == image_icon | img == movie_icon)
+            if (img == image_icon | img == movie_icon)
             {
                 availableContents.Add(panel);
                 panel.index = availableContents.Count - 1;
+            }
+            if (img == audio_icon)
+            {
+                availableContents.Add(panel);
+                audioContents.Add(panel);
+                panel.index = availableContents.Count - 1;
+                panel.audio_index = audioContents.Count - 1;
             }
             if (content_counter % 5 == 0)
             {
@@ -693,6 +706,7 @@ namespace Cherish
     {
         private MainWindow window;
         public int index = -1;
+        public int audio_index = -1;
         public string path;
         public string filename;
         private bool isCategory;
@@ -898,10 +912,10 @@ namespace Cherish
                 {
                     if (!Application.Current.Windows.OfType<Window1>().Any())
                     {
-                        window.subWindow = new(window, index);
+                        window.subWindow = new(window, index, audio_index);
                         window.subWindow.Show();
                     }
-                    window.subWindow.OpenFile(path, index);
+                    window.subWindow.OpenFile(path, index, audio_index);
                 }
             }
         }
