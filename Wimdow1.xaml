@@ -13,6 +13,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid x:Name="grid" Grid.RowSpan="2"/>
-        <Slider TickFrequency="1" Thumb.DragStarted="OnDragStarted" Thumb.DragCompleted="OnDragCompleted" VerticalAlignment="Top" Name="SeekBar" Margin="142,56,143,0" SmallChange="1" Grid.Row="1" ValueChanged="OnValueChanged" Visibility="Collapsed" LargeChange="5" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" Height="0"/>
+        <Slider TickFrequency="1" Thumb.DragStarted="OnDragStarted" Thumb.DragCompleted="OnDragCompleted" Name="SeekBar" Margin="142,311,143,18" SmallChange="1" Grid.Row="1" ValueChanged="OnValueChanged" LargeChange="5" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" Height="18"/>
     </Grid>
 </Window>
