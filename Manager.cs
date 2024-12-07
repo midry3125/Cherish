@@ -4,7 +4,6 @@ using System.Linq;
 using System.IO;
 using System.Collections.Immutable;
 using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Cherish
 {

@@ -128,6 +128,7 @@ namespace Cherish
             audioContents = new();
             row = 0;
             content_counter = 0;
+            var current = manager.current;
             Dispatcher.BeginInvoke(() =>
             {
                 ContentView.Children.Clear();
@@ -136,42 +137,52 @@ namespace Cherish
                 {
                     foreach (string f in manager.fcategories)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, category_icon, true);
                     }
                     foreach (string f in manager.fmovieFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, movie_icon, true);
                     }
                     foreach (string f in manager.faudioFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, audio_icon, true);
                     }
                     foreach (string f in manager.fimageFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, image_icon, true);
                     }
                     foreach (string f in manager.fotherFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, file_icon, true);
                     }
                     foreach (string f in manager.categories)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, category_icon);
                     }
                     foreach (string f in manager.movieFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, movie_icon);
                     }
                     foreach (string f in manager.audioFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, audio_icon);
                     }
                     foreach (string f in manager.imageFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, image_icon);
                     }
                     foreach (string f in manager.otherFiles)
                     {
+                        if (current != manager.current) return;
                         AddContent(f, file_icon);
                     }
                     Refresh();
@@ -982,4 +993,5 @@ namespace Cherish
             }
         }
     }
+
 }
