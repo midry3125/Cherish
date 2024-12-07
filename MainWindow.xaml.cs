@@ -279,6 +279,7 @@ namespace Cherish
                 progress.Close();
             });
             progress.ShowDialog();
+            manager.UpdateInfo();
             SetLayout();
         }
 
@@ -777,6 +778,8 @@ namespace Cherish
                     var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { manager.GetPath(filename) });
                     data.SetData("Source", this);
                     DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.All);
+                    manager.UpdateInfo();
+                    window.SetLayout();
                 }
             };
             DragEnter += w.OnDragEnter;
@@ -825,7 +828,6 @@ namespace Cherish
             {
                 name.Text = filename;
                 FinishChamgeName();
-
             };
             Children.Add(name);
         }
