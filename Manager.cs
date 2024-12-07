@@ -4,6 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Collections.Immutable;
 using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Cherish
 {
@@ -67,10 +68,9 @@ namespace Cherish
             otherFiles = new();
             categories = new();
             faudioFiles = new();
-            imageFiles = new();
-            movieFiles = new();
-            otherFiles = new();
-            categories = new();
+            fimageFiles = new();
+            fmovieFiles = new();
+            fotherFiles = new();
             fcategories = new();
     }
         public void AddFavorite(string name)
@@ -109,11 +109,36 @@ namespace Cherish
         {
             var p = GetPath(name);
             config.favorites.Remove(p);
-            fcategories.Remove(name);
-            faudioFiles.Remove(name);
-            fmovieFiles.Remove(name);
-            fimageFiles.Remove(name);
-            fotherFiles.Remove(name);
+            if (fcategories.Contains(name))
+            {
+                fcategories.Remove(name);
+                categories.Add(name);
+                categories.Sort();
+            }
+            if (faudioFiles.Contains(name))
+            {
+                faudioFiles.Remove(name);
+                audioFiles.Add(name);
+                audioFiles.Sort();
+            }
+            else if (fimageFiles.Contains(name))
+            {
+                fimageFiles.Remove(name);
+                imageFiles.Add(name);
+                imageFiles.Sort();
+            }
+            else if (fmovieFiles.Contains(name))
+            {
+                fmovieFiles.Remove (name);
+                movieFiles.Add(name);
+                movieFiles.Sort();
+            }
+            else
+            {
+                fotherFiles.Remove (name);
+                otherFiles.Add(name);
+                otherFiles.Sort();
+            }
             config.Update();
         }
         public void SetDrive(string d)
