@@ -68,7 +68,7 @@ namespace Cherish
             var menuItem3 = new MenuItem()
             {
                 Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString("Black"),
-                Header = "スぺトラム表示",
+                Header = "スペクトラム表示",
                 Name = SPECTRUM,
                 IsCheckable = true,
                 IsChecked = window.manager.config.spectrum
