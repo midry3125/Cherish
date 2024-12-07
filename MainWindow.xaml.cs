@@ -51,6 +51,7 @@ namespace Cherish
         {
             InitializeComponent();
             Title = "Cherish";
+            ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);  //おまじない
             BackButton.IsEnabled = false;
             SearchBox.Foreground = TextHintColor;
