@@ -51,8 +51,6 @@ namespace Cherish
             window = w;
             index = idx;
             audio_index = audioidx;
-            availableContents = window.availableContents;
-            audioContents = window.audioContents;
             continuous = window.manager.config.continuous;
             var menuItem = new MenuItem()
             {
@@ -230,6 +228,8 @@ namespace Cherish
             nowLoading = true;
             grid.Children.Clear();
             Init();
+            availableContents = window.availableContents;
+            audioContents = window.audioContents;
             var info = new ContentInfo(path);
             filename = System.IO.Path.GetFileName(path);
             Title = $"Cherish  {filename}";
