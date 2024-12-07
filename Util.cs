@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Cherish
@@ -96,6 +97,18 @@ namespace Cherish
                 var res = (BitmapSource)BitmapFrame.Create(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 return res;
             }
+        }
+        public static RenderTargetBitmap GetThumbnail(MediaPlayer p)
+        {
+            p.Position = TimeSpan.FromSeconds(5);
+            var v = new DrawingVisual();
+            using (var ctx = v.RenderOpen())
+            {
+                ctx.DrawVideo(p, new System.Windows.Rect(0, 0, p.NaturalVideoWidth, p.NaturalVideoHeight));
+            }
+            var bmp = new RenderTargetBitmap(p.NaturalVideoWidth, p.NaturalVideoHeight, 96, 96, PixelFormats.Pbgra32);
+            bmp.Render(v);
+            return bmp;
         }
     }
 }

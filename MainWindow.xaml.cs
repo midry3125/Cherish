@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Xml.Linq;
 
 
 namespace Cherish
@@ -25,6 +26,7 @@ namespace Cherish
         private const string OPENBYEXPLORER = "OpenByExplorer";
         private const string OPENWITHSTANDARD = "OpenWithStandard";
         private const string OPEN = "Open";
+        private const string PREVIEWCONFIG = "PreviewConfig";
         public DispatcherTimer timer = new DispatcherTimer();
         public BitmapImage category_icon;
         public BitmapImage audio_icon;
@@ -56,7 +58,13 @@ namespace Cherish
             movie_icon = Util.GenerateBmp(Properties.Resources.movie);
             image_icon = Util.GenerateBmp(Properties.Resources.image);
             file_icon = Util.GenerateBmp(Properties.Resources.file);
-            var contextMenu= new ContextMenu();
+            var contextMenu = new ContextMenu();
+            var menuItem2 = new MenuItem();
+            menuItem2.Header = "エクスプローラーで開く";
+            menuItem2.Name = OPENBYEXPLORER;
+            menuItem2.Click += MenuItemClicked;
+            contextMenu.Items.Add(menuItem2);
+            contextMenu.Items.Add(new Separator());
             var menuItem1 = new MenuItem();
             menuItem1.Header = "カテゴリを作成する";
             menuItem1.Name = NEWCATEGORY;
@@ -64,6 +72,7 @@ namespace Cherish
             contextMenu.Items.Add(menuItem1);
             ContextMenu = contextMenu;
             manager = new();
+            PreviewConfig.IsChecked = manager.config.preview;
             SetLayout();
             UpdateDrive();
             timer.Interval = TimeSpan.FromSeconds(1);
@@ -106,6 +115,7 @@ namespace Cherish
             Dispatcher.BeginInvoke(() =>
             {
                 ContentView.Children.Clear();
+                Refresh();
                 try
                 {
                     foreach (string f in manager.fcategories)
@@ -148,6 +158,7 @@ namespace Cherish
                     {
                         AddContent(f, file_icon);
                     }
+                    Refresh();
                 }
                 catch (System.IO.FileNotFoundException) { }
                 catch (System.IO.DirectoryNotFoundException) { }
@@ -161,6 +172,13 @@ namespace Cherish
                 case NEWCATEGORY:
                     var subWindow = new Window2(manager);
                     subWindow.ShowDialog();
+                    SetLayout();
+                    break;
+                case OPENBYEXPLORER:
+                    Process.Start("explorer.exe", drive.Any() ? manager.dcurrent : manager.current);
+                    break;
+                case PREVIEWCONFIG:
+                    manager.config.ChengePreviewState();
                     SetLayout();
                     break;
             }
@@ -269,30 +287,6 @@ namespace Cherish
             content_counter++;
             var isCategory = img == category_icon;
             var panel = new Content(this, manager.GetPath(fname), img, isCategory, fav);
-            if (img == image_icon) panel.image.Source = new WriteableBitmap(new BitmapImage(new Uri(manager.GetPath(fname))));
-            else if (img == movie_icon)
-            {
-                var p = new MediaElement
-                {
-                    Source = new Uri(manager.GetPath(fname)),
-                    ScrubbingEnabled = true,
-                    Volume=0,
-                    LoadedBehavior= MediaState.Manual,
-                    UnloadedBehavior= MediaState.Manual
-                };
-                p.MediaOpened += (sender, e) =>
-                {
-                    var bmp = new RenderTargetBitmap(p.NaturalVideoWidth, p.NaturalVideoHeight, 96, 96, PixelFormats.Pbgra32);
-                    bmp.Render(p);
-                    panel.image.Source = bmp;
-                    p.Stop();
-                };
-                p.Loaded += (sender, e) =>
-                {
-                    p.Play();
-                    p.Pause();
-                };
-            }
             void ContentMenuItemOpenning(object sender, RoutedEventArgs e)
             {
                 if (NowFocusing != panel)
@@ -379,8 +373,7 @@ namespace Cherish
                         {
                             case NEWCATEGORY:
                                 var subWindow = new Window2(manager);
-                                subWindow.ShowDialog();
-                                SetLayout();
+                                if ((bool)subWindow.ShowDialog()) SetLayout();
                                 break;
                             case OPENBYEXPLORER:
                                 Process.Start("explorer.exe", manager.GetPath(fname));
@@ -432,7 +425,7 @@ namespace Cherish
                 contextMenu.Items.Add(menuItem1);
                 panel.ContextMenu = contextMenu;
                 panel.ContextMenuOpening += ContentMenuItemOpenning;
-                panel.ContextMenuClosing+= ContentMenuItemClosing;
+                panel.ContextMenuClosing += ContentMenuItemClosing;
             }
             else
             {
@@ -450,13 +443,14 @@ namespace Cherish
                                 SetLayout();
                                 break;
                             case OPENBYEXPLORER:
-                                Process.Start("explorer.exe",　drive.Any() ? manager.dcurrent : manager.current);
+                                Process.Start("explorer.exe", drive.Any() ? manager.dcurrent : manager.current);
                                 break;
                             case OPEN:
                                 panel.DoFocus();
                                 break;
                             case OPENWITHSTANDARD:
-                                Process.Start(new ProcessStartInfo(){
+                                Process.Start(new ProcessStartInfo()
+                                {
                                     FileName = manager.GetPath(fname),
                                     UseShellExecute = true,
                                     CreateNoWindow = true
@@ -471,7 +465,6 @@ namespace Cherish
                                 {
                                     manager.Delete(fname);
                                     SetLayout();
-                                    System.Diagnostics.Debug.WriteLine(string.Join(" ", manager.audioFiles));
                                 }
                                 break;
                         }
@@ -536,7 +529,45 @@ namespace Cherish
                 availableContents.Add(panel);
                 panel.index = availableContents.Count - 1;
             }
-            Refresh();
+            if (content_counter % 5 == 0)
+            {
+                Refresh();
+            }
+            if (manager.config.preview)
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    var path = manager.GetPath(fname);
+                    if (!File.Exists(path)) return;
+                    if (img == image_icon) panel.image.Source = new WriteableBitmap(new BitmapImage(new Uri(path)));
+                    else if (img == movie_icon)
+                    {
+                        var p = new MediaPlayer
+                        {
+                            ScrubbingEnabled = true,
+                            Volume = 0,
+                        };
+                        p.Open(new Uri(manager.GetPath(fname)));
+                        p.Play();
+                        p.Pause();
+                        var counter = 0;
+                        var t = new DispatcherTimer();
+                        t.Interval = TimeSpan.FromSeconds(0.5);
+                        t.Tick += (sender, e) =>
+                        {
+                            if (10 < counter) t.Stop();
+                            else if (1 <= p.DownloadProgress & 0 < p.NaturalVideoHeight)
+                            {
+                                panel.image.Source = Util.GetThumbnail(p);
+                                t.Stop();
+                            }
+                            counter++;
+                        };
+                        t.Start();
+                    }
+                    Refresh();
+                });
+            }
         }
 
         public void OnDragEnter(object sender, DragEventArgs e)
@@ -703,6 +734,11 @@ namespace Cherish
                 if (dragTimer is not null) dragTimer.Stop();
                 isMousePressing = false;
             };
+            MouseLeave += (sender, e) =>
+            {
+                if (dragTimer is not null) dragTimer.Stop();
+                isMousePressing = false;
+            };
             MouseDown += (object sender, MouseButtonEventArgs e) =>
             {
                 if (2 <= e.ClickCount)
@@ -746,18 +782,20 @@ namespace Cherish
             DragEnter += w.OnDragEnter;
             image = new();
             image.Height = 80;
-            image.Width = 100;
+            image.Width = Width;
             image.Source = img;
             image.Margin = new Thickness(0, 0, 70, 0);
+            image.VerticalAlignment = VerticalAlignment.Center;
             Children.Add(image);
             name = new();
-            name.Text = Util.FormatString(filename, 26, 2);
+            name.Text = Util.FormatString(filename, (int)Width/10, 2);
             name.Height = 37;
-            name.Width = 170;
+            name.Width = Width;
             name.FontSize = 14;
-            name.Margin = new Thickness(0, 3, 79, 0);
-            name.HorizontalContentAlignment = HorizontalAlignment.Left;
+            name.Margin = new Thickness(0, 3, 0, 0);
+            name.HorizontalContentAlignment = HorizontalAlignment.Center;
             name.VerticalContentAlignment = VerticalAlignment.Center;
+            name.TextAlignment = TextAlignment.Left;
             name.Foreground = NormalNameTextColor;
             name.Background = NormalBackColor;
             name.BorderBrush = NormalBackColor;

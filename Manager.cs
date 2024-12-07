@@ -53,7 +53,8 @@ namespace Cherish
                 Directory.CreateDirectory(Path.Combine(program_dir, "Files"));
                 config = new Config
                 {
-                    favorites=new List<string>()
+                    favorites=new List<string>(),
+                    preview=true,
                 };
                 File.WriteAllText(config_file, JsonSerializer.Serialize(config));
             }
@@ -61,7 +62,8 @@ namespace Cherish
             {
                 config = new Config
                 {
-                    favorites = new List<string>()
+                    favorites = new List<string>(),
+                    preview = true,
                 };
                 File.WriteAllText(config_file, JsonSerializer.Serialize(config));
             }
@@ -290,5 +292,15 @@ namespace Cherish
     public class Config
     {
         public List<string> favorites { get; set; }
+        public bool preview { get; set; }
+        public void Update()
+        {
+            File.WriteAllText(Manager.config_file, JsonSerializer.Serialize(this));
+        }
+        public void ChengePreviewState()
+        {
+            preview = !preview;
+            Update();
+        }
     }
 }
