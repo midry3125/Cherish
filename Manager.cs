@@ -9,7 +9,7 @@ namespace Cherish
 {
     public class Manager
     {
-        private string[] AudioExts = new string[4] { ".mp3", ".wav", ".aiff", ".aif" };
+        private string[] AudioExts = new string[5] { ".m4a" ,".mp3", ".wav", ".aiff", ".aif" };
         private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
         private string[] MovieExts = new string[6] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
         public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Cherish");
@@ -294,6 +294,7 @@ namespace Cherish
         public List<string> favorites { set; get; } = new();
         public bool preview { set; get; } = true;
         public bool continuous { set; get; } = false;
+        public bool spectrum { set; get; } = false;
         public void Update()
         {
             File.WriteAllText(Manager.config_file, JsonSerializer.Serialize(this));
@@ -306,6 +307,11 @@ namespace Cherish
         public void ChangeContinuousState()
         {
             continuous = !continuous;
+            Update();
+        }
+        public void ChangeSpectrumState()
+        {
+            spectrum = !spectrum;
             Update();
         }
     }

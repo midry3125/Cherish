@@ -20,6 +20,7 @@ namespace Cherish
     {
         private const string CONTINOUS = "ContinousPlayConfig";
         private const string OPENWITHSTANDARD = "OpenWithStandard";
+        private const string SPECTRUM = "SpectrumConfig";
         private int type;
         private bool continuous;
         public bool ignore;
@@ -64,6 +65,16 @@ namespace Cherish
             };
             menuItem1.Click += MenuItemClicked;
             menuItem.Items.Add(menuItem1);
+            var menuItem3 = new MenuItem()
+            {
+                Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString("Black"),
+                Header = "スぺトラム表示",
+                Name = SPECTRUM,
+                IsCheckable = true,
+                IsChecked = window.manager.config.spectrum
+            };
+            menuItem3.Click += MenuItemClicked;
+            menuItem.Items.Add(menuItem3);
             menu.Items.Add(menuItem);
             var contextMenu = new ContextMenu();
             var menuItem2 = new MenuItem();
@@ -182,6 +193,9 @@ namespace Cherish
                         UseShellExecute = true,
                         CreateNoWindow = true
                     });
+                    break;
+                case SPECTRUM:
+                    window.manager.config.ChangeSpectrumState();
                     break;
             }
         }

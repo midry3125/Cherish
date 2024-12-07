@@ -23,6 +23,7 @@ namespace Cherish
         private bool isSliderChangedByUser = false;
         private int beforePos = 0;
         private double ignoreMinChange;
+        private bool spectrumExists;
         private StackPanel spectrum;
         private Slider slider;
         private System.Windows.Controls.Image played_spectrum;
@@ -34,26 +35,30 @@ namespace Cherish
         public AudioPlayer(Window1 w, string p)
         {
             path = p;
-            filename = System.IO.Path.GetFileName(path);
+            filename = Path.GetFileName(path);
+            spectrumExists = w.window.manager.config.spectrum;
             var grid = new Grid();
-            spectrum = new StackPanel();
-            var grid2 = new Grid();
-            played_spectrum = new System.Windows.Controls.Image();
-            yet_play_spectrum = new System.Windows.Controls.Image();
-            played_spectrum.Width = 0;
-            yet_play_spectrum.Width = 700;
-            played_spectrum.Stretch = Stretch.None;
-            yet_play_spectrum.Stretch = Stretch.None;
-            played_spectrum.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            yet_play_spectrum.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            played_spectrum.MouseDown += DragFile;
-            yet_play_spectrum.MouseDown += DragFile;
-            grid2.Children.Add(yet_play_spectrum);
-            grid2.Children.Add(played_spectrum);
-            spectrum.Children.Add(grid2);
-            spectrum.Height = 500;
-            spectrum.Width = 1500;
-            grid.Children.Add(spectrum);
+            if (spectrumExists)
+            {
+                spectrum = new StackPanel();
+                var grid2 = new Grid();
+                played_spectrum = new System.Windows.Controls.Image();
+                yet_play_spectrum = new System.Windows.Controls.Image();
+                played_spectrum.Width = 0;
+                yet_play_spectrum.Width = 700;
+                played_spectrum.Stretch = Stretch.None;
+                yet_play_spectrum.Stretch = Stretch.None;
+                played_spectrum.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                yet_play_spectrum.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                played_spectrum.MouseDown += DragFile;
+                yet_play_spectrum.MouseDown += DragFile;
+                grid2.Children.Add(yet_play_spectrum);
+                grid2.Children.Add(played_spectrum);
+                spectrum.Children.Add(grid2);
+                spectrum.Height = 500;
+                spectrum.Width = 1500;
+                grid.Children.Add(spectrum);
+            }
             slider = new();
             slider.Width = 400;
             slider.Height = 30;
@@ -92,26 +97,29 @@ namespace Cherish
                 {
                     stream = new AudioFileReader(path);
                     ignoreMinChange = stream.Length * 0.02; // 無視するスライダー変異数、メモリ二つ分
-                    var rstream = new AudioFileReader(path);
-                    var renderer = new WaveFormRenderer();
-                    var averagePeakProvider = new AveragePeakProvider(4);
-                    var played = new SoundCloudBlockWaveFormSettings(System.Drawing.Color.FromArgb(77, 90, 175), System.Drawing.Color.FromArgb(77, 90, 175), System.Drawing.Color.FromArgb(125, 171, 255), System.Drawing.Color.FromArgb(199, 213, 255));
-                    var yet_play = new SoundCloudBlockWaveFormSettings(System.Drawing.Color.FromArgb(52, 52, 52), System.Drawing.Color.FromArgb(55, 55, 55), System.Drawing.Color.FromArgb(27, 27, 30), System.Drawing.Color.FromArgb(40, 40, 40));
-                    yet_play.Width = (int)spectrum.Width;
-                    yet_play.TopHeight = (int)spectrum.Height / 4 * 3;
-                    yet_play.BottomHeight = (int)spectrum.Height / 4;
-                    yet_play.BackgroundColor = ColorTranslator.FromHtml("#FF1B1B1B");
-                    yet_play.PixelsPerPeak = 2;
-                    played.Width = (int)spectrum.Width;
-                    played.TopHeight = (int)spectrum.Height / 4 * 3;
-                    played.BottomHeight = (int)spectrum.Height / 4;
-                    played.BackgroundColor = ColorTranslator.FromHtml("#FF1B1B1B");
-                    played.PixelsPerPeak = 2;
-                    yet_play_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, yet_play));
-                    rstream.Position = 0;
-                    played_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, played));
-                    rstream.Close();
-                    played.Width = 0;
+                    if (spectrumExists)
+                    {
+                        var rstream = new AudioFileReader(path);
+                        var renderer = new WaveFormRenderer();
+                        var averagePeakProvider = new AveragePeakProvider(4);
+                        var played = new SoundCloudBlockWaveFormSettings(System.Drawing.Color.FromArgb(77, 90, 175), System.Drawing.Color.FromArgb(77, 90, 175), System.Drawing.Color.FromArgb(125, 171, 255), System.Drawing.Color.FromArgb(199, 213, 255));
+                        var yet_play = new SoundCloudBlockWaveFormSettings(System.Drawing.Color.FromArgb(52, 52, 52), System.Drawing.Color.FromArgb(55, 55, 55), System.Drawing.Color.FromArgb(27, 27, 30), System.Drawing.Color.FromArgb(40, 40, 40));
+                        yet_play.Width = (int)spectrum.Width;
+                        yet_play.TopHeight = (int)spectrum.Height / 4 * 3;
+                        yet_play.BottomHeight = (int)spectrum.Height / 4;
+                        yet_play.BackgroundColor = ColorTranslator.FromHtml("#FF1B1B1B");
+                        yet_play.PixelsPerPeak = 2;
+                        played.Width = (int)spectrum.Width;
+                        played.TopHeight = (int)spectrum.Height / 4 * 3;
+                        played.BottomHeight = (int)spectrum.Height / 4;
+                        played.BackgroundColor = ColorTranslator.FromHtml("#FF1B1B1B");
+                        played.PixelsPerPeak = 2;
+                        yet_play_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, yet_play));
+                        rstream.Position = 0;
+                        played_spectrum.Source = Util.ConvertImage(renderer.Render(rstream, averagePeakProvider, played));
+                        rstream.Close();
+                        played.Width = 0;
+                    }
                     stream.Position = 0;
                     device.Init(stream);
                     device.Play();
@@ -148,8 +156,11 @@ namespace Cherish
                 timer.Start();
             }
             var p = (double)pos / stream.Length;
-            var width = (int)(p * yet_play_spectrum.Width);
-            if (width != played_spectrum.Width) played_spectrum.Width = width;
+            if (spectrumExists)
+            {
+                var width = (int)(p * yet_play_spectrum.Width);
+                if (width != played_spectrum.Width) played_spectrum.Width = width;
+            }
         }
 
         public void Finish()
@@ -181,8 +192,11 @@ namespace Cherish
             else if (device.PlaybackState == PlaybackState.Playing)
             {
                 var p = (double)stream.Position / stream.Length;
-                var width = (int)(p * yet_play_spectrum.Width);
-                if (width != played_spectrum.Width) played_spectrum.Width = width;
+                if (spectrumExists)
+                {
+                    var width = (int)(p * yet_play_spectrum.Width);
+                    if (width != played_spectrum.Width) played_spectrum.Width = width;
+                }
                 if (isSliderChangeAble)
                 {
                     isSliderChangedByUser = false;
