@@ -52,6 +52,7 @@ namespace Cherish
             index = idx;
             audio_index = audioidx;
             continuous = window.manager.config.continuous;
+            UpdateContents();
             var menuItem = new MenuItem()
             {
                 Foreground = (SolidColorBrush)new BrushConverter().ConvertFromString("White"),
@@ -178,6 +179,11 @@ namespace Cherish
                 }
             };
         }
+        public void UpdateContents()
+        {
+            availableContents = window.availableContents;
+            audioContents = window.audioContents;
+        }
         private void MenuItemClicked(object sender, RoutedEventArgs e)
         {
             var m = (MenuItem)sender;
@@ -228,8 +234,6 @@ namespace Cherish
             nowLoading = true;
             grid.Children.Clear();
             Init();
-            availableContents = window.availableContents;
-            audioContents = window.audioContents;
             var info = new ContentInfo(path);
             filename = System.IO.Path.GetFileName(path);
             Title = $"Cherish  {filename}";

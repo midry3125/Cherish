@@ -771,7 +771,9 @@ namespace Cherish
                 if (2 <= e.ClickCount)
                 {
                     DoFocus();
-                }else if (Keyboard.Modifiers == ModifierKeys.Control)
+                    if (window.subWindow is not null & !isCategory) window.subWindow.UpdateContents();
+                }
+                else if (Keyboard.Modifiers == ModifierKeys.Control)
                 {
                     if (isFavorite)
                     {
