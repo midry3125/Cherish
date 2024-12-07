@@ -777,9 +777,11 @@ namespace Cherish
                 {
                     var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { manager.GetPath(filename) });
                     data.SetData("Source", this);
-                    DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.All);
-                    manager.UpdateInfo();
-                    window.SetLayout();
+                    if (DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.All) != DragDropEffects.None)
+                    {
+                        manager.UpdateInfo();
+                        window.SetLayout();
+                    }
                 }
             };
             DragEnter += w.OnDragEnter;
