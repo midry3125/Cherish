@@ -8,6 +8,8 @@ using System.Windows.Threading;
 using System.Windows.Media;
 
 using NAudio.Wave;
+using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace Cherish
 {
@@ -17,6 +19,7 @@ namespace Cherish
     public partial class Window1 : System.Windows.Window
     {
         private const string CONTINOUS = "ContinousPlayConfig";
+        private const string OPENWITHSTANDARD = "OpenWithStandard";
         private int type;
         private bool continuous;
         public bool ignore;
@@ -62,6 +65,13 @@ namespace Cherish
             menuItem1.Click += MenuItemClicked;
             menuItem.Items.Add(menuItem1);
             menu.Items.Add(menuItem);
+            var contextMenu = new ContextMenu();
+            var menuItem2 = new MenuItem();
+            menuItem2.Header = "既定のアプリで開く";
+            menuItem2.Name = OPENWITHSTANDARD;
+            menuItem2.Click += MenuItemClicked;
+            contextMenu.Items.Add(menuItem2);
+            ContextMenu = contextMenu;
             KeyDown += (sender, e) =>
             {
                 maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
@@ -164,6 +174,14 @@ namespace Cherish
                     continuous = !continuous;
                     window.manager.config.ChangeContinuousState();
                     maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+                    break;
+                case OPENWITHSTANDARD:
+                    Process.Start(new ProcessStartInfo()
+                    {
+                        FileName = window.manager.GetPath(filename),
+                        UseShellExecute = true,
+                        CreateNoWindow = true
+                    });
                     break;
             }
         }
