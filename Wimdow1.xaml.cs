@@ -9,7 +9,7 @@ using System.Windows.Media;
 
 using NAudio.Wave;
 using System.Diagnostics;
-using System.Xml.Linq;
+using System.Collections.Generic;
 
 namespace Cherish
 {
@@ -24,6 +24,8 @@ namespace Cherish
         private int type;
         private bool continuous;
         public bool ignore;
+        private List<Content> availableContents;
+        private List<Content> audioContents;
         public StackPanel panel;
         public MainWindow window;
         private WaveOutEvent device;
@@ -49,6 +51,8 @@ namespace Cherish
             window = w;
             index = idx;
             audio_index = audioidx;
+            availableContents = window.availableContents;
+            audioContents = window.audioContents;
             continuous = window.manager.config.continuous;
             var menuItem = new MenuItem()
             {
@@ -85,7 +89,7 @@ namespace Cherish
             ContextMenu = contextMenu;
             KeyDown += (sender, e) =>
             {
-                maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+                maxIndex = (audioPlayer is not null & continuous ? audioContents : availableContents).Count - 1;
                 switch (e.Key)
                 {
                     case Key.Space:
@@ -184,7 +188,7 @@ namespace Cherish
                 case CONTINOUS:
                     continuous = !continuous;
                     window.manager.config.ChangeContinuousState();
-                    maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+                    maxIndex = (audioPlayer is not null & continuous ? audioContents : availableContents).Count - 1;
                     break;
                 case OPENWITHSTANDARD:
                     Process.Start(new ProcessStartInfo()
@@ -209,17 +213,16 @@ namespace Cherish
         public void Next()
         {
             if (nowLoading) return;
-            maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+            maxIndex = (audioPlayer is not null & continuous ? audioContents : availableContents).Count - 1;
             var idx = audioPlayer is not null & continuous ? (maxIndex <= audio_index ? 0 : audio_index + 1) : (maxIndex <= index ? 0 : index + 1);
-            (audioPlayer is not null & continuous ? window.audioContents : window.availableContents)[idx].DoFocus();
-            System.Diagnostics.Debug.WriteLine($"{audioPlayer is not null} {continuous}");
+            (audioPlayer is not null & continuous ? audioContents : availableContents)[idx].DoFocus();
         }
         public void Back()
         {
             if (nowLoading) return;
-            maxIndex = (audioPlayer is not null & continuous ? window.audioContents : window.availableContents).Count - 1;
+            maxIndex = (audioPlayer is not null & continuous ? audioContents : availableContents).Count - 1;
             var idx = audioPlayer is not null & continuous ? (audio_index <= 0 ? maxIndex : audio_index - 1) : (index <= 0 ? maxIndex : index - 1);
-            (audioPlayer is not null & continuous ? window.audioContents : window.availableContents)[idx].DoFocus();
+            (audioPlayer is not null & continuous ? audioContents : availableContents)[idx].DoFocus();
         }
         public void OpenFile(string path, int idx, int audioidx)
         {
