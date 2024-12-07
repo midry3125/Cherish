@@ -26,6 +26,7 @@ namespace Cherish
         private const string OPENBYEXPLORER = "OpenByExplorer";
         private const string OPENWITHSTANDARD = "OpenWithStandard";
         private const string OPEN = "Open";
+        private const string COPYPATH = "CopyPath";
         private const string PREVIEWCONFIG = "PreviewConfig";
         private const string CONTINUOUSPLAY = "ContinuousPlayConfig";
         public DispatcherTimer timer = new DispatcherTimer();
@@ -69,7 +70,7 @@ namespace Cherish
             contextMenu.Items.Add(menuItem2);
             contextMenu.Items.Add(new Separator());
             var menuItem1 = new MenuItem();
-            menuItem1.Header = "カテゴリを作成する";
+            menuItem1.Header = "ディレクトリを作成する";
             menuItem1.Name = NEWCATEGORY;
             menuItem1.Click += MenuItemClicked;
             contextMenu.Items.Add(menuItem1);
@@ -222,7 +223,10 @@ namespace Cherish
                     SearchFiles(dir, d);
                 }
             }
-            progress = new();
+            progress = new()
+            {
+                ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize
+            };
             Dispatcher.BeginInvoke(() =>
             {
                 progress.Progress.IsIndeterminate = true;
@@ -401,12 +405,15 @@ namespace Cherish
                                 panel.ChangeAbleName();
                                 break;
                             case DELETECATEGORY:
-                                var res = MessageBox.Show($"カテゴリー名 \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Library", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
+                                var res = MessageBox.Show($"ディレクトリ名 \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Library", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
                                 if (res == MessageBoxResult.Yes)
                                 {
                                     manager.Delete(fname);
                                     SetLayout();
                                 }
+                                break;
+                            case COPYPATH:
+                                Clipboard.SetText(manager.GetPath(fname));
                                 break;
                         }
                     }
@@ -430,6 +437,11 @@ namespace Cherish
                 menuItem3.Name = DELETECATEGORY;
                 menuItem3.Click += CategoryMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
+                var menuItem5 = new MenuItem();
+                menuItem5.Header = "パスをコピー";
+                menuItem5.Name = COPYPATH;
+                menuItem5.Click += CategoryMenuItemClicked;
+                contextMenu.Items.Add(menuItem5);
                 contextMenu.Items.Add(new Separator());
                 var menuItem4 = new MenuItem();
                 menuItem4.Header = "エクスプローラーで開く";
@@ -438,7 +450,7 @@ namespace Cherish
                 contextMenu.Items.Add(menuItem4);
                 contextMenu.Items.Add(new Separator());
                 var menuItem1 = new MenuItem();
-                menuItem1.Header = "カテゴリを作成";
+                menuItem1.Header = "ディレクトリを作成";
                 menuItem1.Name = NEWCATEGORY;
                 menuItem1.Click += CategoryMenuItemClicked;
                 contextMenu.Items.Add(menuItem1);
@@ -486,6 +498,9 @@ namespace Cherish
                                     SetLayout();
                                 }
                                 break;
+                            case COPYPATH:
+                                Clipboard.SetText(manager.GetPath(fname));
+                                break;
                         }
                     }
                     catch (Exception ex)
@@ -508,6 +523,11 @@ namespace Cherish
                 menuItem3.Name = DELETEFILE;
                 menuItem3.Click += FileMenuItemClicked;
                 contextMenu.Items.Add(menuItem3);
+                var menuItem7 = new MenuItem();
+                menuItem7.Header = "パスをコピー";
+                menuItem7.Name = COPYPATH;
+                menuItem7.Click += FileMenuItemClicked;
+                contextMenu.Items.Add(menuItem7);
                 contextMenu.Items.Add(new Separator());
                 var menuItem6 = new MenuItem();
                 menuItem6.Header = "開く";
@@ -526,7 +546,7 @@ namespace Cherish
                 contextMenu.Items.Add(menuItem4);
                 contextMenu.Items.Add(new Separator());
                 var menuItem1 = new MenuItem();
-                menuItem1.Header = "カテゴリを作成";
+                menuItem1.Header = "ディレクトリを作成";
                 menuItem1.Name = NEWCATEGORY;
                 menuItem1.Click += FileMenuItemClicked;
                 contextMenu.Items.Add(menuItem1);
@@ -823,10 +843,10 @@ namespace Cherish
             name = new();
             name.Text = Util.FormatString(filename, (int)Width/10, 2);
             name.Height = 37;
-            name.Width = Width;
+            name.Width = Width-80;
             name.FontSize = 14;
-            name.Margin = new Thickness(0, 3, 0, 0);
-            name.HorizontalContentAlignment = HorizontalAlignment.Center;
+            name.Margin = new Thickness(0, 3, 80, 0);
+            name.HorizontalContentAlignment = HorizontalAlignment.Left;
             name.VerticalContentAlignment = VerticalAlignment.Center;
             name.TextAlignment = TextAlignment.Left;
             name.Foreground = NormalNameTextColor;

@@ -14,6 +14,7 @@ namespace Cherish
         {
             InitializeComponent();
             Title = "Cherish";
+            ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize;
             manager = m;
             CategoryName.Focus();
         }

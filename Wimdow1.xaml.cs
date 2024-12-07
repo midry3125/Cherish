@@ -19,8 +19,9 @@ namespace Cherish
     public partial class Window1 : System.Windows.Window
     {
         private const string CONTINOUS = "ContinousPlayConfig";
-        private const string OPENWITHSTANDARD = "OpenWithStandard";
         private const string SPECTRUM = "SpectrumConfig";
+        private const string OPENWITHSTANDARD = "OpenWithStandard";
+        private const string COPYPATH = "CopyPath";
         private int type;
         private bool continuous;
         public bool ignore;
@@ -33,6 +34,7 @@ namespace Cherish
         private ImageViewer imageViewer;
         private MoviePlayer moviePlayer;
         public string filename;
+        private string fullpath;
         private int index;
         private int audio_index;
         private int maxIndex;
@@ -85,6 +87,11 @@ namespace Cherish
             menuItem2.Name = OPENWITHSTANDARD;
             menuItem2.Click += MenuItemClicked;
             contextMenu.Items.Add(menuItem2);
+            var menuItem4 = new MenuItem();
+            menuItem4.Header = "ファイルパスをコピー";
+            menuItem4.Name = COPYPATH;
+            menuItem4.Click += MenuItemClicked;
+            contextMenu.Items.Add(menuItem4);
             ContextMenu = contextMenu;
             KeyDown += (sender, e) =>
             {
@@ -197,10 +204,13 @@ namespace Cherish
                 case OPENWITHSTANDARD:
                     Process.Start(new ProcessStartInfo()
                     {
-                        FileName = window.manager.GetPath(filename),
+                        FileName = fullpath,
                         UseShellExecute = true,
                         CreateNoWindow = true
                     });
+                    break;
+                case COPYPATH:
+                    Clipboard.SetText(fullpath);
                     break;
                 case SPECTRUM:
                     window.manager.config.ChangeSpectrumState();
@@ -236,6 +246,7 @@ namespace Cherish
             Init();
             var info = new ContentInfo(path);
             filename = System.IO.Path.GetFileName(path);
+            fullpath = path;
             Title = $"Cherish  {filename}";
             Dispatcher.BeginInvoke(() =>
             {
