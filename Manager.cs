@@ -12,31 +12,29 @@ namespace Cherish
         private string[] AudioExts = new string[4] { ".mp3", ".wav", ".aiff", ".aif" };
         private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
         private string[] MovieExts = new string[6] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
-        public string drive="";
         public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Cherish");
         public static string config_file = Path.Combine(program_dir, "config.json");
+        public string root = Path.Combine(program_dir, "Files");
         public Config config;
+        public string drive;
         public string current;
-        public string dcurrent="";
-        public string root;
-        public string search_word="";
+        public string dcurrent;
+        public string search_word;
         public bool isChanged;
-        public List<string> files = new();
-        public List<string> audioFiles = new();
-        public List<string> imageFiles = new();
-        public List<string> movieFiles = new();
-        public List<string> otherFiles = new();
-        public List<string> categories = new();
-
-        public List<string> faudioFiles = new();
-        public List<string> fimageFiles = new();
-        public List<string> fmovieFiles = new();
-        public List<string> fotherFiles = new();
-        public List<string> fcategories = new();
+        public List<string> files;
+        public List<string> audioFiles;
+        public List<string> imageFiles;
+        public List<string> movieFiles;
+        public List<string> otherFiles;
+        public List<string> categories;
+        public List<string> faudioFiles;
+        public List<string> fimageFiles;
+        public List<string> fmovieFiles;
+        public List<string> fotherFiles;
+        public List<string> fcategories;
         public Manager()
         {
-            root = Path.Combine(program_dir, "Files");
-            current = root;
+            Init();
             if (!Directory.Exists(program_dir))
             {
                 Directory.CreateDirectory(program_dir);
@@ -56,6 +54,25 @@ namespace Cherish
             }
             UpdateInfo();
         }
+        public void Init()
+        {
+            current = root;
+            drive = "";
+            dcurrent = "";
+            search_word = "";
+            files = new();
+            audioFiles = new();
+            imageFiles = new();
+            movieFiles = new();
+            otherFiles = new();
+            categories = new();
+            faudioFiles = new();
+            imageFiles = new();
+            movieFiles = new();
+            otherFiles = new();
+            categories = new();
+            fcategories = new();
+    }
         public void AddFavorite(string name)
         {
             var p = GetPath(name);
@@ -86,7 +103,7 @@ namespace Cherish
                 fotherFiles.Add(p);
                 otherFiles.Remove(name);
             }
-            File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+            config.Update();
         }
         public void RemoveFavorite(string name)
         {
@@ -97,7 +114,7 @@ namespace Cherish
             fmovieFiles.Remove(name);
             fimageFiles.Remove(name);
             fotherFiles.Remove(name);
-            File.WriteAllText(config_file, JsonSerializer.Serialize(config));
+            config.Update();
         }
         public void SetDrive(string d)
         {

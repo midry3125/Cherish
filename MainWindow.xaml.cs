@@ -80,8 +80,19 @@ namespace Cherish
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += (sender, e) =>
             {
-                manager.UpdateInfo();
-                UpdateDrive();
+                try
+                {
+                    manager.UpdateInfo();
+                    UpdateDrive();
+                }catch (FileNotFoundException)
+                {
+                    manager.Init();
+                    drive = "";
+                }catch (DirectoryNotFoundException)
+                {
+                    manager.Init();
+                    drive = "";
+                }
                 if (manager.isChanged) SetLayout();
             };
             timer.Start();
