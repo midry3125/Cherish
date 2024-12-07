@@ -1,18 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
-using System.Threading.Tasks;
-using System.Windows.Forms.Design;
 using System.Collections.Immutable;
-using System.DirectoryServices;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Diagnostics;
 using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
-//using System.Windows.Shapes;
 
 namespace Cherish
 {
@@ -22,7 +13,7 @@ namespace Cherish
         private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
         private string[] MovieExts = new string[6] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
         public string drive="";
-        public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Cherish");
+        public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Cherish");
         public static string config_file = Path.Combine(program_dir, "config.json");
         public Config config;
         public string current;
