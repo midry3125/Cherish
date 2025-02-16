@@ -4,14 +4,15 @@ using System.Linq;
 using System.IO;
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace Cherish
 {
     public class Manager
     {
-        private string[] AudioExts = new string[5] { ".m4a" ,".mp3", ".wav", ".aiff", ".aif" };
-        private string[] ImageExts = new string[9] { ".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
-        private string[] MovieExts = new string[6] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
+        public static string[] AudioExts = new string[] { ".m4a" ,".mp3", ".wav", ".aiff", ".aif" };
+        public static string[] ImageExts = new string[] { ".bmp", ".jpg", ".jpeg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
+        public static string[] MovieExts = new string[] { ".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4" };
         public static string program_dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Cherish");
         public static string config_file = Path.Combine(program_dir, "config.json");
         public string root = Path.Combine(program_dir, "Files");
@@ -38,7 +39,7 @@ namespace Cherish
             if (!Directory.Exists(program_dir))
             {
                 Directory.CreateDirectory(program_dir);
-                File.SetAttributes(program_dir, FileAttributes.Normal);
+                System.IO.File.SetAttributes(program_dir, FileAttributes.Normal);
                 Directory.CreateDirectory(Path.Combine(program_dir, "Files"));
                 config = new Config();
                 config.Update();
@@ -152,9 +153,9 @@ namespace Cherish
             UpdateInfo();
         }
 
-        private string GetUnusedName(string name)
+        private string GetUnusedName(string name, string e = "")
         {
-            string ext = Path.GetExtension(name);
+            string ext = string.IsNullOrEmpty(e) ? Path.GetExtension(name) : e;
             string b = Path.GetFileNameWithoutExtension(name);
             string res = b + ext;
             int num = 0;
@@ -278,17 +279,40 @@ namespace Cherish
 
         public string AddFile(string path, bool update=true)
         {
-            string name = GetUnusedName(path);
+            var res = GetPath(GetUnusedName(path));
             if (File.Exists(path))
             {
-                File.Move(path, GetPath(name));
+                File.Move(path, res);
             }
             else if (Directory.Exists(path))
             {
-                Directory.Move(path, GetPath(name));
+                Directory.Move(path, res);
             }
             if (update) UpdateInfo();
-            return GetPath(name);
+            return res;
+        }
+        public string AddFileWithProgress(string path, FileMoveData data, bool update = true)
+        {
+            var res = GetPath(GetUnusedName(path));
+            using (var fr = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                int b;
+                var finished = 0;
+                data.Size = fr.Length;
+                data.FinishedSize = 0;
+                data.FormatSize = $"{Util.GetFormatFileSize(data.Size)}";
+                using (var fw = new FileStream(res, FileMode.Create, FileAccess.Write))
+                {
+                    while ((b = fr.ReadByte()) != -1)
+                    {
+                        fw.WriteByte((byte)b);
+                        finished++;
+                        data.FinishedSize = finished;
+                    }
+                }
+            }
+            if (update) UpdateInfo();
+            return res;
         }
         public void Delete(string name, bool update=true)
         {
@@ -310,6 +334,15 @@ namespace Cherish
             if (Directory.Exists(fpath)) Directory.Move(fpath, tpath);
             else File.Move(fpath, GetPath(tpath));
             UpdateInfo();
+        }
+        public void CreateShortCut(string name)
+        {
+            var path = GetPath(name);
+            var to = GetPath(GetUnusedName(name, ".lnk"));
+            var shell = new IWshRuntimeLibrary.WshShell();
+            var sc = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(to);
+            sc.TargetPath = path;
+            sc.Save();
         }
     }
 
@@ -338,5 +371,12 @@ namespace Cherish
             spectrum = !spectrum;
             Update();
         }
+    }
+
+    public class FileMoveData
+    {
+        public int FinishedSize;
+        public double Size;
+        public string FormatSize;
     }
 }

@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Cherish"
         mc:Ignorable="d"
-        Title="Window3" Height="295" Width="525" Background="#FF1B1B1B">
+        Title="Window3" Height="295" Width="525" Background="#FF1B1B1B" ResizeMode="NoResize">
     <Grid>
-        <Label x:Name="Label" Content="" HorizontalAlignment="Left" Margin="0,43,0,0" VerticalAlignment="Top" FontSize="20" Foreground="#FFCDD1DA"/>
+        <Label x:Name="Label1" Content="" HorizontalAlignment="Left" Margin="0,43,0,0" VerticalAlignment="Top" FontSize="20" Foreground="#FFCDD1DA"/>
         <Button Content="リトライ" HorizontalAlignment="Left" Margin="54,189,0,0" VerticalAlignment="Top" Height="43" Width="86" FontSize="25" Click="Retry"/>
         <Button Content="中断" HorizontalAlignment="Left" Margin="361,189,0,0" VerticalAlignment="Top" Height="43" Width="86" FontSize="25" Click="Stop"/>
         <CheckBox x:Name="CheckBox" Content="同様のファイルを全てスキップする(スキップ選択時のみ)" HorizontalAlignment="Left" Margin="24,140,0,0" VerticalAlignment="Top" Height="22" Width="238" Foreground="#FFCDD1DA" FontSize="10">

@@ -1,18 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
 using System.Windows.Threading;
 
 namespace Cherish
@@ -22,26 +8,13 @@ namespace Cherish
     /// </summary>
     public partial class ProgressDialog : Window
     {
-        [DllImport("user32.dll")]
-        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll")]
-        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        const int GWL_STYLE = -16;
-        const int WS_SYSMENU = 0x80000;
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            int style = GetWindowLong(handle, GWL_STYLE);
-            style = style & (~WS_SYSMENU);
-            SetWindowLong(handle, GWL_STYLE, style);
-        }
         public ProgressDialog()
         {
             InitializeComponent();
+            Closing += (sender, e) =>
+            {
+                e.Cancel = MainProgress.Value != MainProgress.Maximum;
+            };
         }
         public void Refresh()
         {
@@ -53,6 +26,18 @@ namespace Cherish
             });
             Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, callback, frame);
             Dispatcher.PushFrame(frame);
+        }
+
+        private void OnExpanded(object sender, RoutedEventArgs e)
+        {
+            Height += 35;
+            MainGrid.Height += 35;
+        }
+
+        private void OnCollapsed(object sender, RoutedEventArgs e)
+        {
+            Height -= 35;
+            MainGrid.Height -= 35;
         }
     }
 }

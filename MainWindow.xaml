@@ -7,7 +7,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="MainWindow" Height="560" Width="980"
-        xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2">
+        xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" SizeChanged="OnWindowSizeChanged">
     <Window.Resources>
         <!-- スクロールバーの幅 -->
         <sys:Double x:Key="ScrollBarSize">14</sys:Double>
@@ -520,6 +520,9 @@
         </Style>
     </Window.Resources>
     <Grid Background="#FF1B1B1B" Margin="0,0,0,-38">
+        <Grid.LayoutTransform>
+            <ScaleTransform x:Name="Scale" ScaleX="1" ScaleY="1"/>
+        </Grid.LayoutTransform>
         <DockPanel>
             <DockPanel Height="77" DockPanel.Dock="Top">
                 <Grid Height="Auto" Width="Auto">
@@ -532,13 +535,14 @@
                             <MenuItem Name="PreviewConfig" Click="MenuItemClicked" Foreground="Black" Header="プレビューを表示" IsCheckable="True"/>
                         </MenuItem>
                     </Menu>
-                    <Button Grid.Row="2" Style="{DynamicResource ButtonStyle1}" x:Name="BackButton" Content="＜" HorizontalAlignment="Left" Height="62" VerticalAlignment="Center" Width="90" Background="#FF202126" BorderBrush="#FF1B1B1B" Click="OnBackButtonClicked" Foreground="#FF4E5478" FontSize="50"/>
+                    <Button Grid.Row="2" AllowDrop="True" Style="{DynamicResource ButtonStyle1}" x:Name="BackButton" Content="＜" HorizontalAlignment="Left" Height="62" VerticalAlignment="Center" Width="90" Background="#FF202126" BorderBrush="#FF1B1B1B" Click="OnBackButtonClicked" Foreground="#FF4E5478" FontSize="50" DragEnter="OnBackButtonDragEnter" DragLeave="OnBackButtonDragLeave" DragOver="OnBackButtonDragOver" Drop="OnBackButtonDrop"/>
                     <ComboBox Grid.Row="1" x:Name="Drive" ToolTip="外部ドライブ" Style="{DynamicResource ComboBoxStyle1}" HorizontalAlignment="Left" Margin="285,19,0,0" VerticalAlignment="Top" Width="160" BorderBrush="#FF515467" Background="#FF2D3054" Foreground="#FF24391E" Height="27" SelectionChanged="OnDriveSelected"/>
-                    <TextBox Grid.Row="1" Style="{DynamicResource TextBoxStyle1}" x:Name="SearchBox" TextAlignment="Left"  HorizontalAlignment="Left" Margin="680,21,0,0" TextWrapping="Wrap" Width="226" Height="27" Background="#FFA6A7AD" ToolTip="名前で検索" KeyDown="OnTextBoxKeyDown" TextChanged="OnTextChanged" Text="名前で検索" Foreground="#FF475054" VerticalAlignment="Top" GotFocus="OnSearchBoxFocused" LostFocus="OnSearchBoxLostFocused"/>
+                    <TextBox Grid.Row="1" FontSize="20" Style="{DynamicResource TextBoxStyle1}" x:Name="SearchBox" TextAlignment="Left"  HorizontalAlignment="Left" Margin="680,21,0,0" TextWrapping="Wrap" Width="226" Height="27" Background="#FFA6A7AD" ToolTip="名前で検索" KeyDown="OnTextBoxKeyDown" TextChanged="OnTextChanged" Text="名前で検索" Foreground="#FF475054" VerticalAlignment="Top" GotFocus="OnSearchBoxFocused" LostFocus="OnSearchBoxLostFocused"/>
+                    <Button Grid.Row="1" Name="ClearSearchWordButton" IsEnabled="False" FontSize="16" Content="クリア" Margin="918,21,10,12" Click="Button_Click"/>
                     <Label Grid.Row="2" Content="外部ドライブ：" HorizontalAlignment="Left" Margin="136,15,0,0" VerticalAlignment="Top" Foreground="#FF597194" Height="40" Width="122" FontSize="20" Grid.ColumnSpan="2"/>
                 </Grid>
             </DockPanel>
-            <ScrollViewer  Style="{StaticResource CustomScrollViewerStyle}" VerticalScrollBarVisibility="Visible" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop" DragOver="OnDragOver" Height="451">
+            <ScrollViewer x:Name="Viewer"  Style="{StaticResource CustomScrollViewerStyle}" VerticalScrollBarVisibility="Visible" AllowDrop="True" DragEnter="OnDragEnter" Drop="OnDrop" DragOver="OnDragOver" Height="450">
                 <Grid x:Name="ContentView" Background="#FF1B1B1B" AllowDrop="True" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>

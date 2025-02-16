@@ -5,10 +5,22 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Cherish"
         mc:Ignorable="d"
-        Title="Cherish" Height="158" Width="374" Background="#FF1B1B1B">
-    <Grid>
-        <ProgressBar x:Name="Progress" HorizontalAlignment="Center" Height="24" Margin="0,90,0,0" VerticalAlignment="Top" Width="280" Background="#FF78819F" Foreground="#FF34AF4B"/>
-        <Label x:Name="Label" Content="" Margin="0,47,0,0" VerticalAlignment="Top" Foreground="#FFCDD1DA" Height="38" FontSize="18" Width="328" HorizontalAlignment="Right"/>
+        Title="Cherish" Height="150" Width="479" Background="#FF1B1B1B">
+    <Grid x:Name="MainGrid">
+        <ProgressBar x:Name="MainProgress" HorizontalAlignment="Left" Height="24" Margin="43,54,0,0" VerticalAlignment="Top" Width="400" Background="#FF78819F" Foreground="#FF34AF4B"/>
+        <Label x:Name="Label" Content="" Margin="0,10,36,0" VerticalAlignment="Top" Foreground="#FFCDD1DA" Height="38" FontSize="18" Width="400" HorizontalAlignment="Right"/>
+        <Expander x:Name="VerboseExpander" IsExpanded="False" HorizontalAlignment="Left" Height="24" Header="詳細" Margin="10,83,0,0" VerticalAlignment="Top" Width="462" Foreground="#FFCDD1DA" Expanded="OnExpanded" Collapsed="OnCollapsed">
+            <Grid Margin="0,0,0,-42" Width="447">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="69*"/>
+                    <ColumnDefinition Width="247*"/>
+                    <ColumnDefinition Width="105*"/>
+                </Grid.ColumnDefinitions>
+                <Label Name="VerbosePercentProgress" HorizontalAlignment="Center" FontSize="20" Content="0%" Foreground="#FFCDD1DA" Width="49"/>
+                <ProgressBar x:Name="VerboseProgress" Maximum="100" Minimum="0" HorizontalAlignment="Left" Height="24" VerticalAlignment="Center" Width="208" Background="#FF78819F" Foreground="#FF34AF4B" Margin="2,0,0,0" Grid.Column="1"/>
+                <Label Grid.Column="1" Name="VerboseProgressLabel" FontSize="16" Content="0B / 0B" Foreground="#FFCDD1DA" Margin="219,4,-9,5" Grid.ColumnSpan="2"/>
+            </Grid>
+        </Expander>
 
     </Grid>
 </Window>

@@ -64,7 +64,7 @@
         </Style>
     </Window.Resources>
     <Grid Background="#FF1B1B1B">
-        <Label Content="作成するカテゴリー名" HorizontalAlignment="Center" Margin="0,43,0,0" VerticalAlignment="Top" FontSize="30" Foreground="#FFCDD1DA"/>
+        <Label Content="作成するディレクトリ名" HorizontalAlignment="Center" Margin="0,43,0,0" VerticalAlignment="Top" FontSize="30" Foreground="#FFCDD1DA"/>
         <TextBox x:Name="CategoryName" HorizontalAlignment="Center" Margin="0,103,0,0" VerticalAlignment="Top" Width="360" FontSize="25" Background="#FF2A2A2A" TextChanged="OnTextChanged" Foreground="#FFBDC7F4" KeyDown="OnKeyDown"/>
         <Button Style="{DynamicResource ButtonStyle1}" x:Name="CreateButton" Content="作成" HorizontalAlignment="Center" Margin="0,175,0,0" VerticalAlignment="Top" Height="47" Width="122" FontSize="25" Background="#FF2A2A2A" Foreground="#FFCDD1DA" Click="OnButtonClicked" IsEnabled="False"/>
         <Label x:Name="ErrorLabel" Content="" HorizontalAlignment="Left" Margin="214,138,0,0" VerticalAlignment="Top" FontSize="25" Foreground="#FF551818"/>

@@ -4,21 +4,23 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using System.Xml.Linq;
 
 
 namespace Cherish
 {
     public partial class MainWindow : Window
     {
+        private const int DEFAULT_WIDTH = 980;
+        private const int DEFAULT_HEIGHT = 560;
+        private const string TRASH = @"C:\$Recycle.Bin";
         private const string NEWCATEGORY = "NewCategory";
         private const string DELETECATEGORY = "DeleteCategory";
         private const string DELETEFILE = "Delete";
@@ -30,6 +32,7 @@ namespace Cherish
         private const string PREVIEWCONFIG = "PreviewConfig";
         private const string CONTINUOUSPLAY = "ContinuousPlayConfig";
         public DispatcherTimer timer = new DispatcherTimer();
+        public DispatcherTimer filemoveTimer;
         public BitmapImage category_icon;
         public BitmapImage audio_icon;
         public BitmapImage movie_icon;
@@ -45,6 +48,7 @@ namespace Cherish
         private int row = 0;
         private bool isSearchMode;
         private bool ignore;
+        private bool nowRendering;
         private ProgressDialog progress;
         public Content NowFocusing;
         public Window1 subWindow;
@@ -52,7 +56,6 @@ namespace Cherish
         {
             InitializeComponent();
             Title = "Cherish";
-            ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);  //おまじない
             BackButton.IsEnabled = false;
             SearchBox.Foreground = TextHintColor;
@@ -129,66 +132,78 @@ namespace Cherish
             row = 0;
             content_counter = 0;
             var current = manager.current;
-            Dispatcher.BeginInvoke(() =>
+            Task.Run(() =>
             {
-                ContentView.Children.Clear();
-                Refresh();
+                if (nowRendering) return;
+                nowRendering = true;
+                Dispatcher.Invoke(() =>
+                {
+                    ContentView.Children.Clear();
+                    Refresh();
+                });
                 try
                 {
-                    foreach (string f in manager.fcategories)
+                    lock (manager)
                     {
-                        if (current != manager.current) return;
-                        AddContent(f, category_icon, true);
+                        foreach (string f in manager.fcategories)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, category_icon, true);
+                        }
+                        foreach (string f in manager.fmovieFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, movie_icon, true);
+                        }
+                        foreach (string f in manager.faudioFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, audio_icon, true);
+                        }
+                        foreach (string f in manager.fimageFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, image_icon, true);
+                        }
+                        foreach (string f in manager.fotherFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, file_icon, true);
+                        }
+                        foreach (string f in manager.categories)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, category_icon);
+                        }
+                        foreach (string f in manager.movieFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, movie_icon);
+                        }
+                        foreach (string f in manager.audioFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, audio_icon);
+                        }
+                        foreach (string f in manager.imageFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, image_icon);
+                        }
+                        foreach (string f in manager.otherFiles)
+                        {
+                            if (current != manager.current) return;
+                            AddContent(f, file_icon);
+                        }
+                        Refresh();
                     }
-                    foreach (string f in manager.fmovieFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, movie_icon, true);
-                    }
-                    foreach (string f in manager.faudioFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, audio_icon, true);
-                    }
-                    foreach (string f in manager.fimageFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, image_icon, true);
-                    }
-                    foreach (string f in manager.fotherFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, file_icon, true);
-                    }
-                    foreach (string f in manager.categories)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, category_icon);
-                    }
-                    foreach (string f in manager.movieFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, movie_icon);
-                    }
-                    foreach (string f in manager.audioFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, audio_icon);
-                    }
-                    foreach (string f in manager.imageFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, image_icon);
-                    }
-                    foreach (string f in manager.otherFiles)
-                    {
-                        if (current != manager.current) return;
-                        AddContent(f, file_icon);
-                    }
-                    Refresh();
                 }
-                catch (System.IO.FileNotFoundException) { }
-                catch (System.IO.DirectoryNotFoundException) { }
+                catch (FileNotFoundException) { }
+                catch (DirectoryNotFoundException) { }
+                finally
+                {
+                    nowRendering = false;
+                }
             });
             BackButton.IsEnabled = drive == "" ?  manager.root != manager.current : manager.drive != manager.dcurrent;
         }
@@ -213,7 +228,258 @@ namespace Cherish
                     break;
             }
         }
-        private void Register(string[] targets)
+        private void Delete(string target)
+        {
+            var fileNum = 0;
+            var paths = new List<string>();
+            var dirs = new List<string>();
+            void SearchFiles(string dir, string p)
+            {
+                var dirname = Path.GetFileName(dir);
+                foreach (string f in Directory.GetFiles(p))
+                {
+                    paths.Add(Path.Combine(p, f));
+                    fileNum += 1;
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"ファイルパスを取得中...  {fileNum}";
+                    });
+                    progress.Refresh();
+                }
+                foreach (string d in Directory.GetDirectories(p))
+                {
+                    dirs.Add(d);
+                    SearchFiles(dir, d);
+                }
+            }
+            var data = new FileMoveData();
+            progress = new()
+            {
+                ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize
+            };
+            progress.VerboseExpander.Visibility = Visibility.Hidden;
+            Task.Run(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = true;
+                    progress.Refresh();
+                });
+                if (Directory.Exists(target))
+                {
+                    var d = Path.GetFileName(target);
+                    dirs.Add(target);
+                    SearchFiles(target, target);
+                }
+                else
+                {
+                    paths.Add(target);
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = false;
+                    progress.MainProgress.Maximum = paths.Count;
+                    progress.MainProgress.Minimum = 0;
+                    progress.MainProgress.Value = 0;
+                    progress.Refresh();
+                });
+                var skip = false;
+                foreach (var p in paths)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"削除中 {Util.FormatString(Path.GetFileName(p), 25)}  {progress.MainProgress.Value}/{fileNum}";
+                    });
+                    while (true)
+                    {
+                        try
+                        {
+                            File.Delete(p);
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            if (skip) break;
+                            int r = 0;
+                            bool a = false;
+                            Dispatcher.Invoke(() =>
+                            {
+                                var dialog = new UsingOtherProcessDialog();
+                                dialog.OpenDialog(Path.GetFileName(p));
+                                r = dialog.result;
+                                a = dialog.allSkip;
+                            });
+                            if (r == UsingOtherProcessDialog.SKIP)
+                            {
+                                skip = a;
+                                break;
+                            }
+                            else if (r == UsingOtherProcessDialog.STOP)
+                            {
+                                Dispatcher.BeginInvoke(() =>
+                                {
+                                    progress.Close();
+                                });
+                                return;
+                            }
+                        }
+                        finally
+                        {
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                progress.MainProgress.Value++;
+                            });
+                        }
+                    }
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.Value += 1;
+                    progress.Refresh();
+                });
+                foreach (string d in dirs)
+                {
+                    try
+                    {
+                        Directory.Delete(d, true);
+                    }
+                    catch { }
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.Close();
+                });
+            });
+            progress.ShowDialog();
+        }
+        private void Delete(string[] targets)
+        {
+            var fileNum = 0;
+            var paths = new List<string>();
+            var dirs = new List<string>();
+            void SearchFiles(string dir, string p)
+            {
+                var dirname = Path.GetFileName(dir);
+                foreach (string f in Directory.GetFiles(p))
+                {
+                    paths.Add(Path.Combine(p, f));
+                    fileNum += 1;
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"ファイルパスを取得中...  {fileNum}";
+                    });
+                    progress.Refresh();
+                }
+                foreach (string d in Directory.GetDirectories(p))
+                {
+                    dirs.Add(d);
+                    SearchFiles(dir, d);
+                }
+            }
+            var data = new FileMoveData();
+            progress = new()
+            {
+                ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize
+            };
+            progress.VerboseExpander.Visibility = Visibility.Hidden;
+            Task.Run(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = true;
+                    progress.Refresh();
+                });
+                foreach (string t in targets)
+                {
+                    if (Directory.Exists(t))
+                    {
+                        var d = Path.GetFileName(t);
+                        dirs.Add(t);
+                        SearchFiles(t, t);
+                    }
+                    else
+                    {
+                        paths.Add(t);
+                    }
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = false;
+                    progress.MainProgress.Maximum = paths.Count;
+                    progress.MainProgress.Minimum = 0;
+                    progress.MainProgress.Value = 0;
+                    progress.Refresh();
+                });
+                var skip = false;
+                foreach (var p in paths)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"削除中 {Util.FormatString(Path.GetFileName(p), 25)}  {progress.MainProgress.Value}/{fileNum}";
+                    });
+                    while (true)
+                    {
+                        try
+                        {
+                            File.Delete(p);
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            if (skip) break;
+                            int r = 0;
+                            bool a = false;
+                            Dispatcher.Invoke(() =>
+                            {
+                                var dialog = new UsingOtherProcessDialog();
+                                dialog.OpenDialog(Path.GetFileName(p));
+                                r = dialog.result;
+                                a = dialog.allSkip;
+                            });
+                            if (r == UsingOtherProcessDialog.SKIP)
+                            {
+                                skip = a;
+                                break;
+                            }
+                            else if (r == UsingOtherProcessDialog.STOP)
+                            {
+                                Dispatcher.BeginInvoke(() =>
+                                {
+                                    progress.Close();
+                                });
+                                return;
+                            }
+                        }
+                        finally
+                        {
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                progress.MainProgress.Value++;
+                            });
+                        }
+                    }
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.Value += 1;
+                    progress.Refresh();
+                });
+                foreach (string d in dirs)
+                {
+                    try
+                    {
+                        Directory.Delete(d, true);
+                    }
+                    catch { }
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    progress.Close();
+                });
+            });
+            progress.ShowDialog();
+        }
+        private void Register(string[] targets,bool copy = true)
         {
             var fileNum = 0;
             var paths = new Dictionary<string, string>();
@@ -225,8 +491,10 @@ namespace Cherish
                 {
                     paths.Add(f, Path.Combine(dirname, Path.GetRelativePath(dir, f)));
                     fileNum += 1;
-                    progress.Label.Content = $"ファイルパスを取得中...  {fileNum}";
-                    progress.Refresh();
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"ファイルパスを取得中...  {fileNum}";
+                    });
                 }
                 foreach (string d in Directory.GetDirectories(p)){
                     dirs.Add(d);
@@ -234,14 +502,40 @@ namespace Cherish
                     SearchFiles(dir, d);
                 }
             }
-            progress = new()
+            var data = new FileMoveData();
+            Dispatcher.Invoke(() =>
             {
-                ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize
+                progress = new()
+                {
+                    ResizeMode = ResizeMode.NoResize | ResizeMode.CanMinimize
+                };
+            });
+            filemoveTimer = new()
+            {
+                Interval = TimeSpan.FromSeconds(0.5)
             };
-            Dispatcher.BeginInvoke(() =>
+            if (copy)
             {
-                progress.Progress.IsIndeterminate = true;
-                progress.Refresh();
+                filemoveTimer.Tick += (sender, e) =>
+                {
+                    var p = (int)(data.FinishedSize / data.Size * 100);
+                    progress.VerbosePercentProgress.Content = $"{p}%";
+                    progress.VerboseProgressLabel.Content = $"{Util.GetFormatFileSize(data.FinishedSize)} / {data.FormatSize}";
+                    progress.VerboseProgress.Value = p;
+                    progress.Refresh();
+                };
+            }
+            else
+            {
+                filemoveTimer.Tick += (sender, e) => { };
+            }
+            Task.Run(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = true;
+                    progress.Refresh();
+                });
                 foreach (string t in targets)
                 {
                     if (Directory.Exists(t))
@@ -256,71 +550,121 @@ namespace Cherish
                         paths.Add(t, Path.GetFileName(t));
                     }
                 }
-                progress.Progress.IsIndeterminate = false;
-                progress.Progress.Maximum = paths.Count;
-                progress.Progress.Minimum = 0;
-                progress.Progress.Value = 0;
-                progress.Refresh();
+                Dispatcher.Invoke(() =>
+                {
+                    progress.MainProgress.IsIndeterminate = false;
+                    progress.MainProgress.Maximum = paths.Count;
+                    progress.MainProgress.Minimum = 0;
+                    progress.MainProgress.Value = 0;
+                    progress.VerboseExpander.Visibility = copy ? Visibility.Visible : Visibility.Collapsed;
+                    progress.Refresh();
+                });
                 var skip = false;
                 var current = manager.current;
-                foreach (KeyValuePair<string, string> item in paths)
+                var header = copy ? "コピー中" : "移動中";
+                filemoveTimer.Start();
+                foreach (var item in paths)
                 {
-                    progress.Label.Content = $"移動中...  {progress.Progress.Value}/{fileNum}";
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        progress.Label.Content = $"{header} {Util.FormatString(Path.GetFileName(item.Key), 25)}  {progress.MainProgress.Value}/{fileNum}";
+                        progress.VerbosePercentProgress.Content = "0%";
+                        progress.VerboseProgress.Value = 0;
+                    });
                     var dirname = Path.GetDirectoryName(item.Value);
                     manager.Cd(dirname);
                     while (true)
                     {
                         try
                         {
-                            manager.AddFile(item.Key, false);
+                            if (copy)
+                            {
+                                manager.AddFileWithProgress(item.Key, data, false);
+                            }
+                            else
+                            {
+                                manager.AddFile(item.Key, false);
+                            }
                             break;
                         }
                         catch (IOException)
                         {
                             if (skip) break;
-                            var dialog = new UsingOtherProcessDialog();
-                            dialog.OpenDialog(Path.GetFileName(item.Key));
-                            if (dialog.result == UsingOtherProcessDialog.SKIP){
-                                skip = dialog.allSkip;
+                            filemoveTimer.Stop();
+                            int r = 0;
+                            bool a = false;
+                            Dispatcher.Invoke(() =>
+                            {
+                                var dialog = new UsingOtherProcessDialog();
+                                dialog.OpenDialog(Path.GetFileName(item.Key));
+                                r = dialog.result;
+                                a = dialog.allSkip;
+                            });
+                            if (r == UsingOtherProcessDialog.SKIP)
+                            {
+                                skip = a;
                                 break;
                             }
-                            else if (dialog.result == UsingOtherProcessDialog.STOP)
+                            else if (r == UsingOtherProcessDialog.STOP)
                             {
-                                progress.Close();
-                                SetLayout();
+                                Dispatcher.BeginInvoke(() =>
+                                {
+                                    progress.Close();
+                                });
                                 return;
                             }
+                            else
+                            {
+                                filemoveTimer.Start();
+                            }
                         }
-                        catch (Exception e)
+                        finally
                         {
-                            MessageBox.Show($"エラーが発生しました\n({e.Message})", "Cherish  エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
+                            manager.current = current;
+                            Dispatcher.BeginInvoke(() =>
+                            {
+                                progress.MainProgress.Value++;
+                            });
                         }
                     }
-                    manager.current = current;
-                    progress.Progress.Value += 1;
-                    progress.Refresh();
                 }
-                foreach (string d in dirs)
+                filemoveTimer.Stop();
+                Dispatcher.Invoke(() =>
                 {
-                    try
+                    progress.Refresh();
+                });
+                if (!copy)
+                {
+                    foreach (string d in dirs)
                     {
-                        Directory.Delete(d, true);
+                        try
+                        {
+                            Directory.Delete(d, true);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
-                progress.Close();
+                Dispatcher.Invoke(() =>
+                {
+                    progress.Close();
+                });
             });
-            progress.ShowDialog();
-            manager.UpdateInfo();
-            SetLayout();
+            Dispatcher.Invoke(() =>
+            {
+                progress.ShowDialog();
+            });
         }
 
         private void AddContent(string fname, BitmapImage img, bool fav=false)
         {
             content_counter++;
+            var path = manager.GetPath(fname);
             var isCategory = img == category_icon;
-            var panel = new Content(this, manager.GetPath(fname), img, isCategory, fav);
+            Content panel = null;
+            Dispatcher.Invoke(() =>
+            {
+                panel = new Content(this, path, img, isCategory, fav);
+            });
             void ContentMenuItemOpenning(object sender, RoutedEventArgs e)
             {
                 if (NowFocusing != panel)
@@ -337,66 +681,74 @@ namespace Cherish
             }
             if (isCategory)
             {
-                panel.Drop += (s, e) =>
+                Dispatcher.Invoke(() =>
                 {
-                    var paths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
-                    if (CheckDropAble(e))
+                    panel.Drop += (s, e) =>
                     {
-                        manager.Cd(fname);
-                        Register(paths);
-                        manager.Cd();
-                    }
-                    else
-                    {
-                        foreach (string f in paths)
+                        var current = manager.current;
+                        var paths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+                        if (CheckDropAble(e))
                         {
                             manager.Cd(fname);
-                            try
+                            Register(paths, Keyboard.Modifiers == ModifierKeys.Control);
+                        }
+                        else
+                        {
+                            foreach (string f in paths)
                             {
-                                manager.AddFile(f, false);
-                                manager.Cd();
-                                manager.Delete(Path.GetFileName(f), false);
-                                if (subWindow is not null)
+                                manager.Cd(fname);
+                                try
                                 {
-                                    if (subWindow.filename == Path.GetFileName(f))
+                                    manager.AddFile(f, false);
+                                    manager.Cd();
+                                    manager.Delete(Path.GetFileName(f), false);
+                                    if (subWindow is not null)
                                     {
-                                        if (availableContents.Count == 1)
+                                        if (subWindow.filename == Path.GetFileName(f))
                                         {
-                                            subWindow.Init();
-                                            subWindow.Close();
-                                        }
-                                        else
-                                        {
-                                            subWindow.Next();
+                                            if (availableContents.Count == 1)
+                                            {
+                                                subWindow.Init();
+                                                subWindow.Close();
+                                            }
+                                            else
+                                            {
+                                                subWindow.Next();
+                                            }
                                         }
                                     }
                                 }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                                finally
+                                {
+                                    manager.current = current;
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"エラーが発生しました\n({ex.Message})", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
+                            SetLayout();
                         }
-                        SetLayout();
-                    }
-                    e.Handled = true;
-                };
-                panel.DragEnter += (sender, e) =>
-                {
-                    panel.Selected();
-                    e.Effects = DragDropEffects.All;
-                    e.Handled = true;
-                };
-                panel.DragOver += (sender, e) =>
-                {
-                    e.Effects = DragDropEffects.All;
-                    e.Handled = true;
-                };
-                panel.DragLeave += (sender, e) =>
-                {
-                    panel.UnSelected();
-                };
+                        e.Handled = true;
+                    };
+                    panel.DragEnter += (sender, e) =>
+                    {
+                        panel.Selected();
+                        e.Effects = CheckIfSelf(e, path) ? DragDropEffects.None : DragDropEffects.Move;
+                        e.Handled = true;
+                    };
+                    panel.DragOver += (sender, e) =>
+                    {
+                        e.Effects = CheckIfSelf(e, path) ? DragDropEffects.None : DragDropEffects.Move;
+                        e.Handled = true;
+                    };
+                    panel.DragLeave += (sender, e) =>
+                    {
+                        panel.UnSelected();
+                    };
+                });
                 void CategoryMenuItemClicked(object sender, RoutedEventArgs e)
                 {
                     var m = (MenuItem)sender;
@@ -407,7 +759,8 @@ namespace Cherish
                         {
                             case NEWCATEGORY:
                                 var subWindow = new Window2(manager);
-                                if ((bool)subWindow.ShowDialog()) SetLayout();
+                                subWindow.ShowDialog();
+                                SetLayout();
                                 break;
                             case OPENBYEXPLORER:
                                 Process.Start("explorer.exe", manager.GetPath(fname));
@@ -419,7 +772,7 @@ namespace Cherish
                                 var res = MessageBox.Show($"ディレクトリ名 \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Library", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
                                 if (res == MessageBoxResult.Yes)
                                 {
-                                    manager.Delete(fname);
+                                    Delete(manager.GetPath(fname));
                                     SetLayout();
                                 }
                                 break;
@@ -437,37 +790,47 @@ namespace Cherish
                         panel.UnSelected();
                     }
                 }
-                var contextMenu = new ContextMenu();
-                var menuItem2 = new MenuItem();
-                menuItem2.Header = "名前を変更";
-                menuItem2.Name = RENAME;
-                menuItem2.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem2);
-                var menuItem3 = new MenuItem();
-                menuItem3.Header = "削除";
-                menuItem3.Name = DELETECATEGORY;
-                menuItem3.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem3);
-                var menuItem5 = new MenuItem();
-                menuItem5.Header = "パスをコピー";
-                menuItem5.Name = COPYPATH;
-                menuItem5.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem5);
-                contextMenu.Items.Add(new Separator());
-                var menuItem4 = new MenuItem();
-                menuItem4.Header = "エクスプローラーで開く";
-                menuItem4.Name = OPENBYEXPLORER;
-                menuItem4.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem4);
-                contextMenu.Items.Add(new Separator());
-                var menuItem1 = new MenuItem();
-                menuItem1.Header = "ディレクトリを作成";
-                menuItem1.Name = NEWCATEGORY;
-                menuItem1.Click += CategoryMenuItemClicked;
-                contextMenu.Items.Add(menuItem1);
-                panel.ContextMenu = contextMenu;
-                panel.ContextMenuOpening += ContentMenuItemOpenning;
-                panel.ContextMenuClosing += ContentMenuItemClosing;
+                Dispatcher.Invoke(() =>
+                {
+                    var contextMenu = new ContextMenu();
+                    var menuItem2 = new MenuItem();
+                    menuItem2.Header = "名前を変更";
+                    menuItem2.Name = RENAME;
+                    menuItem2.Click += CategoryMenuItemClicked;
+                    contextMenu.Items.Add(menuItem2);
+                    var menuItem3 = new MenuItem();
+                    menuItem3.Header = "削除";
+                    menuItem3.Name = DELETECATEGORY;
+                    menuItem3.Click += CategoryMenuItemClicked;
+                    contextMenu.Items.Add(menuItem3);
+                    var menuItem6 = new MenuItem();
+                    menuItem6.Header = "ショートカットを作成";
+                    menuItem6.Click += (sender, e) =>
+                    {
+                        manager.CreateShortCut(fname);
+                    };
+                    contextMenu.Items.Add(menuItem6);
+                    var menuItem5 = new MenuItem();
+                    menuItem5.Header = "パスをコピー";
+                    menuItem5.Name = COPYPATH;
+                    menuItem5.Click += CategoryMenuItemClicked;
+                    contextMenu.Items.Add(menuItem5);
+                    contextMenu.Items.Add(new Separator());
+                    var menuItem4 = new MenuItem();
+                    menuItem4.Header = "エクスプローラーで開く";
+                    menuItem4.Name = OPENBYEXPLORER;
+                    menuItem4.Click += CategoryMenuItemClicked;
+                    contextMenu.Items.Add(menuItem4);
+                    contextMenu.Items.Add(new Separator());
+                    var menuItem1 = new MenuItem();
+                    menuItem1.Header = "ディレクトリを作成";
+                    menuItem1.Name = NEWCATEGORY;
+                    menuItem1.Click += CategoryMenuItemClicked;
+                    contextMenu.Items.Add(menuItem1);
+                    panel.ContextMenu = contextMenu;
+                    panel.ContextMenuOpening += ContentMenuItemOpenning;
+                    panel.ContextMenuClosing += ContentMenuItemClosing;
+                });
             }
             else
             {
@@ -505,7 +868,7 @@ namespace Cherish
                                 var res = MessageBox.Show($"ファイル \"{Util.FormatString(fname, 20, 1, false)}\"を削除します", "Cherish", MessageBoxButton.YesNoCancel, MessageBoxImage.Exclamation);
                                 if (res == MessageBoxResult.Yes)
                                 {
-                                    manager.Delete(fname);
+                                    Delete(manager.GetPath(fname));
                                     SetLayout();
                                 }
                                 break;
@@ -523,68 +886,104 @@ namespace Cherish
                         panel.UnSelected();
                     }
                 }
-                var contextMenu = new ContextMenu();
-                var menuItem2 = new MenuItem();
-                menuItem2.Header = "名前を変更";
-                menuItem2.Name = RENAME;
-                menuItem2.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem2);
-                var menuItem3 = new MenuItem();
-                menuItem3.Header = "削除";
-                menuItem3.Name = DELETEFILE;
-                menuItem3.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem3);
-                var menuItem7 = new MenuItem();
-                menuItem7.Header = "パスをコピー";
-                menuItem7.Name = COPYPATH;
-                menuItem7.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem7);
-                contextMenu.Items.Add(new Separator());
-                var menuItem6 = new MenuItem();
-                menuItem6.Header = "開く";
-                menuItem6.Name = OPEN;
-                menuItem6.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem6);
-                var menuItem5 = new MenuItem();
-                menuItem5.Header = "既定のアプリで開く";
-                menuItem5.Name = OPENWITHSTANDARD;
-                menuItem5.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem5);
-                var menuItem4 = new MenuItem();
-                menuItem4.Header = "エクスプローラーで開く";
-                menuItem4.Name = OPENBYEXPLORER;
-                menuItem4.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem4);
-                contextMenu.Items.Add(new Separator());
-                var menuItem1 = new MenuItem();
-                menuItem1.Header = "ディレクトリを作成";
-                menuItem1.Name = NEWCATEGORY;
-                menuItem1.Click += FileMenuItemClicked;
-                contextMenu.Items.Add(menuItem1);
-                panel.ContextMenu = contextMenu;
-                panel.ContextMenuOpening += ContentMenuItemOpenning;
-                panel.ContextMenuClosing += ContentMenuItemClosing;
+                Dispatcher.Invoke(() =>
+                {
+                    var contextMenu = new ContextMenu();
+                    var menuItem2 = new MenuItem();
+                    menuItem2.Header = "名前を変更";
+                    menuItem2.Name = RENAME;
+                    menuItem2.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem2);
+                    var menuItem3 = new MenuItem();
+                    menuItem3.Header = "削除";
+                    menuItem3.Name = DELETEFILE;
+                    menuItem3.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem3);
+                    var menuItem8 = new MenuItem();
+                    menuItem8.Header = "ショートカットを作成";
+                    menuItem8.Click += (sender, e) =>
+                    {
+                        manager.CreateShortCut(fname);
+                    };
+                    contextMenu.Items.Add(menuItem8);
+                    var menuItem7 = new MenuItem();
+                    menuItem7.Header = "パスをコピー";
+                    menuItem7.Name = COPYPATH;
+                    menuItem7.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem7);
+                    contextMenu.Items.Add(new Separator());
+                    var menuItem6 = new MenuItem();
+                    menuItem6.Header = "開く";
+                    menuItem6.Name = OPEN;
+                    menuItem6.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem6);
+                    var menuItem5 = new MenuItem();
+                    menuItem5.Header = "既定のアプリで開く";
+                    menuItem5.Name = OPENWITHSTANDARD;
+                    menuItem5.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem5);
+                    var menuItem4 = new MenuItem();
+                    menuItem4.Header = "エクスプローラーで開く";
+                    menuItem4.Name = OPENBYEXPLORER;
+                    menuItem4.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem4);
+                    contextMenu.Items.Add(new Separator());
+                    var menuItem1 = new MenuItem();
+                    menuItem1.Header = "ディレクトリを作成";
+                    menuItem1.Name = NEWCATEGORY;
+                    menuItem1.Click += FileMenuItemClicked;
+                    contextMenu.Items.Add(menuItem1);
+                    panel.ContextMenu = contextMenu;
+                    panel.ContextMenuOpening += ContentMenuItemOpenning;
+                    panel.ContextMenuClosing += ContentMenuItemClosing;
+                });
             }
-            ContentView.Children.Add(panel);
+            Dispatcher.Invoke(() =>
+            {
+                ContentView.Children.Add(panel);
+            });
             int col = (content_counter - 1) % 5;
             if (col == 0)
             {
                 row++;
-                ContentView.RowDefinitions.Add(new RowDefinition());
+                Dispatcher.Invoke(() =>
+                {
+                    ContentView.RowDefinitions.Add(new RowDefinition());
+                });
             }
-            Grid.SetColumn(panel, col);
-            Grid.SetRow(panel, row);
+            Dispatcher.Invoke(() =>
+            {
+                Grid.SetColumn(panel, col);
+                Grid.SetRow(panel, row);
+            });
             if (img == image_icon | img == movie_icon)
             {
-                availableContents.Add(panel);
-                panel.index = availableContents.Count - 1;
+                Dispatcher.Invoke(() =>
+                {
+                    availableContents.Add(panel);
+                    panel.index = availableContents.Count - 1;
+                });
             }
-            if (img == audio_icon)
+            else if (img == audio_icon)
             {
-                availableContents.Add(panel);
-                audioContents.Add(panel);
-                panel.index = availableContents.Count - 1;
-                panel.audio_index = audioContents.Count - 1;
+                Dispatcher.Invoke(() =>
+                {
+                    availableContents.Add(panel);
+                    audioContents.Add(panel);
+                    panel.index = availableContents.Count - 1;
+                    panel.audio_index = audioContents.Count - 1;
+                });
+            }
+            else if (!isCategory)
+            {
+                var icon = Util.GetAssociatedImage(path);
+                if (icon is not null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        panel.image.Source = icon;
+                    });
+                }
             }
             if (content_counter % 5 == 0)
             {
@@ -592,37 +991,45 @@ namespace Cherish
             }
             if (manager.config.preview)
             {
-                Dispatcher.BeginInvoke(() =>
+                Task.Run(() =>
                 {
-                    var path = manager.GetPath(fname);
                     if (!File.Exists(path)) return;
-                    if (img == image_icon) panel.image.Source = new WriteableBitmap(new BitmapImage(new Uri(path)));
+                    if (img == image_icon)
+                    {
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            panel.image.Source = Util.GenerateBmp(path);
+                        });
+                    }
                     else if (img == movie_icon)
                     {
-                        var p = new MediaPlayer
+                        Dispatcher.BeginInvoke(() =>
                         {
-                            ScrubbingEnabled = true,
-                            Volume = 0,
-                        };
-                        p.Open(new Uri(manager.GetPath(fname)));
-                        p.Play();
-                        p.Pause();
-                        var counter = 0;
-                        var t = new DispatcherTimer();
-                        t.Interval = TimeSpan.FromSeconds(0.5);
-                        t.Tick += (sender, e) =>
-                        {
-                            if (10 < counter) t.Stop();
-                            else if (1 <= p.DownloadProgress & 0 < p.NaturalVideoHeight)
+                            var p = new MediaPlayer
                             {
-                                panel.image.Source = Util.GetThumbnail(p);
-                                t.Stop();
-                            }
-                            counter++;
-                        };
-                        t.Start();
+                                ScrubbingEnabled = true,
+                                Volume = 0,
+                            };
+                            p.Open(new Uri(manager.GetPath(fname)));
+                            p.Play();
+                            p.Pause();
+                            var counter = 0;
+                            var t = new DispatcherTimer();
+                            t.Interval = TimeSpan.FromSeconds(1);
+                            t.Tick += (sender, e) =>
+                            {
+                                if (10 < counter) t.Stop();
+                                else if (1 <= p.DownloadProgress && 0 < p.NaturalVideoHeight)
+                                {
+                                    panel.image.Source = Util.GetThumbnail(p);
+                                    t.Stop();
+                                    Refresh();
+                                }
+                                counter++;
+                            };
+                            t.Start();
+                        });
                     }
-                    Refresh();
                 });
             }
         }
@@ -639,21 +1046,31 @@ namespace Cherish
 
         private void OnDrop(object sender, DragEventArgs e)
         {
-            if (!CheckDropAble(e))
+            if (CheckDropAble(e))
             {
-                e.Handled= true;
-                return;
+                Dispatcher.BeginInvoke(() =>
+                {
+                    Register((string[])e.Data.GetData(DataFormats.FileDrop), Keyboard.Modifiers == ModifierKeys.Control);
+                });
             }
-            Register((string[])e.Data.GetData(DataFormats.FileDrop));
+            else
+            {
+                e.Handled = true;
+            }
         }
         private bool CheckDropAble(DragEventArgs e)
         {
-            if (e.Data.GetDataPresent("Source"))
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return false;
+            return Path.GetDirectoryName(((string[])e.Data.GetData(DataFormats.FileDrop))[0]) != manager.current;
+        }
+        private bool CheckIfSelf(DragEventArgs e, string self)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                var source = e.Data.GetData("Source");
-                return source.GetType().Assembly != Assembly.GetExecutingAssembly();
+                var d = (string[])e.Data.GetData(DataFormats.FileDrop);
+                return d.ToList().Contains(self);
             }
-            return true;
+            return false;
         }
 
         private void OnClose(object sender, CancelEventArgs e)
@@ -702,27 +1119,34 @@ namespace Cherish
         private void OnTextBoxKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
-            {
-                if (SearchBox.Text.Any())
+            
+                if (!string.IsNullOrEmpty(SearchBox.Text))
                 {
                     manager.Search(SearchBox.Text);
                     SetLayout();
                     isSearchMode = true;
-                }else if (isSearchMode)
+                    ClearSearchWordButton.IsEnabled = true;
+                }
+                else if (isSearchMode)
                 {
                     manager.Search();
                     SetLayout();
                     isSearchMode = false;
+                    ClearSearchWordButton.IsEnabled = false;
                 }
-            }
+        }
+        private void InitSearch()
+        {
+            SearchBox.Text = "名前で検索";
+            SearchBox.Foreground = TextHintColor;
+            ClearSearchWordButton.IsEnabled = false;
         }
         private void OnTextChanged(object sender, TextChangedEventArgs e)
         {
             if (SearchBox.Foreground == TextHintColor) return;
             if (string.IsNullOrEmpty(SearchBox.Text) & !SearchBox.IsFocused)
             {
-                SearchBox.Text = "名前で検索";
-                SearchBox.Foreground = TextHintColor;
+                InitSearch();
             }
         }
 
@@ -743,10 +1167,55 @@ namespace Cherish
                 SearchBox.Foreground = TextHintColor;
             }
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            InitSearch();
+            manager.Search();
+            SetLayout();
+            isSearchMode = false;
+        }
+
+        private void OnBackButtonDragEnter(object sender, DragEventArgs e)
+        {
+            e.Effects = BackButton.IsEnabled && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void OnBackButtonDragLeave(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void OnBackButtonDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = BackButton.IsEnabled && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void OnBackButtonDrop(object sender, DragEventArgs e)
+        {
+            var copy = Keyboard.Modifiers == ModifierKeys.Control;
+            Task.Run(() =>
+            {
+                var current = manager.current;
+                manager.Cd();
+                Register((string[])e.Data.GetData(DataFormats.FileDrop), copy);
+                manager.current = current;
+            });
+        }
+
+        private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Scale.ScaleX = ActualWidth / DEFAULT_WIDTH;
+            Scale.ScaleY = ActualHeight / DEFAULT_HEIGHT;
+        }
     }
 
     public class Content: StackPanel
     {
+        private const int FilenameWidth = 20;
         private MainWindow window;
         public int index = -1;
         public int audio_index = -1;
@@ -758,7 +1227,6 @@ namespace Cherish
         private bool isUseAbleName = false;
         private bool isFavorite = false;
         private bool isMousePressing = false;
-        private DispatcherTimer dragTimer;
         private Manager manager;
         public TextBox name;
         public Image image;
@@ -779,7 +1247,7 @@ namespace Cherish
             isOtherFile = img == window.file_icon;
             isFavorite = fav;
             manager = window.manager;
-            filename = System.IO.Path.GetFileName(path);
+            filename = Path.GetFileName(path);
             Background = isFavorite ? FavoriteBackColor: NormalBackColor;
             Width = 250;
             Height = 120;
@@ -789,12 +1257,10 @@ namespace Cherish
             MouseLeave += OnMouseLeave;
             MouseUp += (sender, e) =>
             {
-                if (dragTimer is not null) dragTimer.Stop();
                 isMousePressing = false;
             };
             MouseLeave += (sender, e) =>
             {
-                if (dragTimer is not null) dragTimer.Stop();
                 isMousePressing = false;
             };
             MouseDown += (object sender, MouseButtonEventArgs e) =>
@@ -820,7 +1286,7 @@ namespace Cherish
                     }
                     window.SetLayout();
                 }
-                else if (!isCategory & e.LeftButton == MouseButtonState.Pressed)
+                else if (e.LeftButton == MouseButtonState.Pressed)
                 {
                     isMousePressing = true;
                     if (e.ClickCount == 1 & window.NowFocusing != this & window.NowFocusing is not null) window.NowFocusing.Leave();
@@ -834,9 +1300,8 @@ namespace Cherish
             {
                 if (isMousePressing)
                 {
-                    var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { manager.GetPath(filename) });
-                    data.SetData("Source", this);
-                    if (DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.All) != DragDropEffects.None)
+                    var data = new DataObject(DataFormats.FileDrop, new[] { manager.GetPath(filename) });
+                    if (DragDrop.DoDragDrop(this, data, DragDropEffects.All) != DragDropEffects.None)
                     {
                         manager.UpdateInfo();
                         window.SetLayout();
@@ -852,14 +1317,14 @@ namespace Cherish
             image.VerticalAlignment = VerticalAlignment.Center;
             Children.Add(image);
             name = new();
-            name.Text = Util.FormatString(filename, (int)Width/10, 2);
+            name.Text = Util.FormatString(filename, FilenameWidth, 2);
             name.Height = 37;
             name.Width = Width-80;
             name.FontSize = 14;
             name.Margin = new Thickness(0, 3, 80, 0);
             name.HorizontalContentAlignment = HorizontalAlignment.Left;
             name.VerticalContentAlignment = VerticalAlignment.Center;
-            name.TextAlignment = TextAlignment.Left;
+            name.TextAlignment = TextAlignment.Center;
             name.Foreground = NormalNameTextColor;
             name.Background = NormalBackColor;
             name.BorderBrush = NormalBackColor;
@@ -909,8 +1374,7 @@ namespace Cherish
         public void FinishChamgeName()
         {
             filename = name.Text.Trim();
-            path = manager.GetPath(filename);
-            name.Text = Util.FormatString(filename, 24, 2);
+            name.Text = Util.FormatString(filename, FilenameWidth, 2);
             name.Select(0, 0);
             name.IsReadOnly = true;
             name.IsEnabled = false;

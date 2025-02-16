@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Media;
@@ -9,6 +9,8 @@ namespace Cherish
 {
     public class Util
     {
+        static string[] suffix = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
+        const int BORDER = 1024;
         public static int CountString(string s)
         {
             return Encoding.GetEncoding("Shift_JIS").GetByteCount(s);
@@ -25,7 +27,7 @@ namespace Cherish
                 var c = s[i].ToString();
                 count += CountString(c);
                 if (count < start) continue;
-                else if (start+num <= count) break;
+                else if (start+num < count) break;
                 else res += c;
             }
             return res;
@@ -36,7 +38,7 @@ namespace Cherish
             if (length <= col)
             {
                 if (!space) return s;
-                string sp = new string(' ', (col - length));
+                string sp = new string(' ', (col - length) / 2);
                 return sp + s + sp;
             }
             else
@@ -45,7 +47,7 @@ namespace Cherish
                 int end = 0;
                 for (int i = 0; i < row; i++)
                 {
-                    var start = col * i;
+                    var start = col * i + 1;
                     if (length < start)
                     {
                         break;
@@ -58,10 +60,20 @@ namespace Cherish
                     {
                         res += Substring(s, start, col-6);
                     }
-                    end = start+col;
+                    end = start + col;
                 }
                 return end <= length ?  res.Trim() + "..." : res.Trim();
             }
+        }
+        public static BitmapImage GenerateBmp(string path)
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(path);
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
         }
         public static BitmapImage GenerateBmp(byte[] b)
         {
@@ -90,7 +102,7 @@ namespace Cherish
         }
         public static BitmapSource ConvertImage(System.Drawing.Image i)
         {
-            using (var ms = new System.IO.MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 i.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
                 ms.Seek(0, System.IO.SeekOrigin.Begin);
@@ -109,6 +121,58 @@ namespace Cherish
             var bmp = new RenderTargetBitmap(p.NaturalVideoWidth, p.NaturalVideoHeight, 96, 96, PixelFormats.Pbgra32);
             bmp.Render(v);
             return bmp;
+        }
+        public static string GetFormatFileSize(string path)
+        {
+            var f = new FileInfo(path);
+            var idx = 0;
+            double s = f.Length;
+            while (BORDER <= s)
+            {
+                s /= BORDER;
+                idx++;
+            }
+            return $"{Math.Round(s, 1, MidpointRounding.AwayFromZero)}{suffix[idx]}";
+        }
+        public static string GetFormatFileSize(double s)
+        {
+            var idx = 0;
+            while (BORDER <= s)
+            {
+                s /= BORDER;
+                idx++;
+            }
+            return $"{Math.Round(s, 1, MidpointRounding.AwayFromZero)}{suffix[idx]}B";
+        }
+        public static string GetUnUsedOath(string name, string dir)
+        {
+            string ext = Path.GetExtension(name);
+            string b = Path.GetFileNameWithoutExtension(name);
+            int num = 0;
+            var p = Path.Combine(dir, b + ext);
+            while (File.Exists(p) || Directory.Exists(p))
+            {
+                num += 1;
+                p = Path.Combine(dir, $"{b}({num}){ext}");
+            }
+            return p;
+        }
+        public static BitmapSource? GetAssociatedImage(string path)
+        {
+            var icon = Icon.ExtractAssociatedIcon(path);
+            if (icon is null)
+            {
+                return null;
+            }
+            else
+            {
+                using (var s = new MemoryStream())
+                {
+                    icon.ToBitmap().Save(s, System.Drawing.Imaging.ImageFormat.Bmp);
+                    s.Seek(0, SeekOrigin.Begin);
+                    return BitmapFrame.Create(s, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                }
+            }
         }
     }
 }

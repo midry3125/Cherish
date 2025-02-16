@@ -173,8 +173,12 @@ namespace Cherish
                     SeekBar.Visibility = Visibility.Visible;
                     grid.Opacity = 0.5;
                     Cursor = Cursors.Arrow;
-                    SeekCancelTimer?.Stop();
-                    SeekCancelTimer?.Start();
+                    SeekCancelTimer.Stop();
+                    SeekCancelTimer.Start();
+                }
+                else
+                {
+                    Cursor = Cursors.Arrow;
                 }
             };
             MouseLeave += (sender, e) =>
@@ -242,6 +246,7 @@ namespace Cherish
         {
             if (nowLoading) return;
             nowLoading = true;
+            SeekBar.Visibility = Visibility.Collapsed;
             grid.Children.Clear();
             Init();
             var info = new ContentInfo(path);
@@ -337,20 +342,17 @@ namespace Cherish
         public const int IMAGE = 2;
         public const int MOVIE = 1;
         public const int OTHER = 0;
-        private string[] AudioExts = new string[5]{".mp3", ".m4a", ".wav", ".aiff", ".aif"};
-        private string[] ImageExts = new string[9]{".bmp", ".jpg", ".gif", ".png", ".exif", ".tiff", ".ico", ".wmf", ".emf" };
-        private string[] MovieExts = new string[6]{".avi", ".mpg", ".mpeg", ".mov", ".qt", ".mp4"};
         public int type;
         public ContentInfo(string path)
         {
             string ext = System.IO.Path.GetExtension(path);
-            if (AudioExts.Contains(ext))
+            if (Manager.AudioExts.Contains(ext))
             {
                 type = AUDIO;
-            }else if (ImageExts.Contains(ext))
+            }else if (Manager.ImageExts.Contains(ext))
             {
                 type = IMAGE;
-            }else if (MovieExts.Contains(ext))
+            }else if (Manager.MovieExts.Contains(ext))
             {
                 type = MOVIE;
             }
